@@ -380,7 +380,8 @@ def in_gebied(spots, filt):
 
 
 def toon_telling(spots, alle_jaren, per_jaar_modus):
-    """Tabel met het aantal zwarte punten in de gekozen periode: België, gewesten en provincies.
+    """Tabellen met het aantal zwarte punten in de gekozen periode: per gewest en per provincie, elk met een rij
+    Totaal (= heel België, dat zo impliciet vermeld wordt).
 
     Telt altijd heel België, ook als je hieronder op een gebied filtert. Bij 'Elk jaar apart' één kolom per jaar."""
     if spots.empty:
@@ -393,16 +394,22 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
         return {"Zwarte punten": len(deel)}
 
     groepen = [
-        ("België", [("België", spots)]),
         ("Gewesten", [(g, spots[spots["gewest"] == g]) for g in sorted(df["gewest"].unique())]),
         ("Provincies", [(p, spots[spots["provincie"] == p]) for p in sorted(df["provincie"].unique())]),
     ]
-    # Drie afgebakende blokken naast elkaar, elk met een eigen kader en titel
-    for kolom, (titel, delen) in zip(st.columns([1, 1.3, 1.7]), groepen):
+
+    def vet_totaal(rij):
+        """Opmaak: de rij 'Totaal' (= heel België) in vet, met een lijn erboven."""
+        if rij["Gebied"] == "Totaal":
+            return ["font-weight: bold; border-top: 2px solid currentColor"] * len(rij)
+        return [""] * len(rij)
+
+    # Twee afgebakende blokken naast elkaar, elk met een eigen kader en titel; onderaan de rij Totaal (= België)
+    for kolom, (titel, delen) in zip(st.columns([1, 1.3]), groepen):
         with kolom.container(border=True):
             st.markdown(f"**{titel}**")
-            rijen = [{"Gebied": naam, **tel(deel)} for naam, deel in delen]
-            st.dataframe(pd.DataFrame(rijen), width="stretch", hide_index=True, height=35 * (len(rijen) + 1) + 3)
+            rijen = [{"Gebied": naam, **tel(deel)} for naam, deel in delen] + [{"Gebied": "Totaal", **tel(spots)}]
+            st.table(pd.DataFrame(rijen).style.hide(axis="index").apply(vet_totaal, axis=1))
 
 
 def toon_kaart_en_tabel(spots, kolommen, dek, onder_kaart=None):
