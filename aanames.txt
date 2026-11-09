@@ -210,7 +210,9 @@ Definitie in dit project:
 - TABEL ONDER DE KAART (tussen de kaart met legende en de lijst van zwarte punten): aantal zwarte punten in de
   gekozen periode in 2 afgebakende blokken met elk een kader en titel naast elkaar: Gewesten (3) en Provincies
   (11, inclusief "Geen provincie (Brussel)", dat dezelfde punten telt als het Brussels Gewest). België heeft geen eigen
-  blok meer: onderaan elk blok staat in vet de rij "Totaal" (= heel België), zodat België impliciet vermeld wordt. Bij "Elk jaar apart"
+  blok meer: onderaan elk blok staat de rij "Totaal" (= heel België), zodat België impliciet vermeld wordt. Opmaak:
+  de kolomnamen staan in vet; de rij Totaal heeft dezelfde opmaak als de kolomnamen (vet op een lichtgrijze
+  achtergrond) en is cursief, met een lijn erboven. Bij "Elk jaar apart"
   is er één kolom per jaar. De tabel telt ALTIJD heel België, ook als je op een gebied filtert. Controle (2022-2024,
   standaard): België 215 = gewesten 74 + 124 + 17 = provincies 78 + 74 + 6 + 8 + 9 + 0 + 2 + 28 + 5 + 0 + 5.
 - WERKWIJZE SINDS 2026-11-09: de zwarte punten worden eerst voor heel België gezocht (alle ongevallen met bruikbare

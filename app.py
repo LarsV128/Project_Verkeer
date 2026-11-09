@@ -398,10 +398,14 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
         ("Provincies", [(p, spots[spots["provincie"] == p]) for p in sorted(df["provincie"].unique())]),
     ]
 
-    def vet_totaal(rij):
-        """Opmaak: de rij 'Totaal' (= heel België) in vet, met een lijn erboven."""
+    # Opmaak van de kolomnamen: vet op een lichtgrijze achtergrond (werkt in licht en donker thema)
+    KOP = [("background-color", "rgba(128, 128, 128, 0.18)"), ("font-weight", "bold")]
+    KOP_CSS = "; ".join(f"{eigenschap}: {waarde}" for eigenschap, waarde in KOP)
+
+    def totaal_opmaak(rij):
+        """De rij 'Totaal' (= heel België) heeft de opmaak van de kolomnamen, maar cursief, met een lijn erboven."""
         if rij["Gebied"] == "Totaal":
-            return ["font-weight: bold; border-top: 2px solid currentColor"] * len(rij)
+            return [f"{KOP_CSS}; font-style: italic; border-top: 2px solid currentColor"] * len(rij)
         return [""] * len(rij)
 
     # Twee afgebakende blokken naast elkaar, elk met een eigen kader en titel; onderaan de rij Totaal (= België)
@@ -409,7 +413,13 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
         with kolom.container(border=True):
             st.markdown(f"**{titel}**")
             rijen = [{"Gebied": naam, **tel(deel)} for naam, deel in delen] + [{"Gebied": "Totaal", **tel(spots)}]
-            st.table(pd.DataFrame(rijen).style.hide(axis="index").apply(vet_totaal, axis=1))
+            stijl = (
+                pd.DataFrame(rijen)
+                .style.hide(axis="index")
+                .set_table_styles([{"selector": "th", "props": KOP}])
+                .apply(totaal_opmaak, axis=1)
+            )
+            st.table(stijl)
 
 
 def toon_kaart_en_tabel(spots, kolommen, dek, onder_kaart=None):
