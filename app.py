@@ -6,6 +6,7 @@ import heapq
 from pathlib import Path
 from types import SimpleNamespace
 
+import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -267,7 +268,7 @@ def toon_ranglijst(filt):
     toon(g, titel)
 
 
-tab_punten, tab_data = st.tabs(["Kaart", "Data View"])
+tab_punten, tab_evolutie, tab_data = st.tabs(["Kaart", "Evolutie", "Data View"])
 
 # ---------- Tab Data View (met onderaan de foute coördinaten, zie verderop) ----------
 with tab_data:
@@ -533,6 +534,13 @@ with tab_punten:
             ok = ok & (np.logical_or.reduce(ernst) if ernst_combi == "of" else np.logical_and.reduce(ernst))
         return spots[ok]
 
+    def spots_voor_periode(p):
+        """Zwarte punten (met de instellingen van het tandwiel) over één periode van ongevallen, gezocht in heel België.
+
+        Wordt ook door het tabblad Evolutie gebruikt, voor elke periode van 3 jaar."""
+        cluster = zoek_clusters(p["x_lambert72"].to_numpy(), p["y_lambert72"].to_numpy(), gewichten(p), straal, drempel)
+        return voldoet(bouw_spots(p, cluster)[1])
+
     basis_kolommen = ["gemeente", "score", "totaal", "licht", "zwaar", "doden"]
 
     plaats2 = plaats_label(f2)
@@ -647,6 +655,140 @@ with tab_punten:
             "De filters gewest, provincie en gemeente bepalen welke zwarte punten op de kaart en in de lijst staan; een "
             "punt hoort bij het gebied waar de meeste van zijn ongevallen liggen. De tabel bovenaan telt altijd heel België."
         )
+
+# ---------- Tab Evolutie ----------
+GEWEST_NAAM = {"Vlaams Gewest": "Vlaanderen", "Brussels Hoofdstedelijk Gewest": "Brussels Gewest", "Waals Gewest": "Wallonië"}
+
+
+STREEP = 6  # lengte van een streepje in pixels (alleen opmaak)
+
+
+def toon_lijngrafiek(titel, reeksen, periodes):
+    """Lijngrafiek met de punten verbonden. `reeksen` = {naam: [aantal per periode]}, `periodes` = [(eindjaar, begin), ...].
+
+    De periode staat op de x-as met het eindjaar (2019 = 2017-2019); de volledige periode staat in de hover.
+
+    Stippellijn-regel (automatisch, per lijnstuk tussen twee opeenvolgende periodes): hebben twee of meer reeksen in dezelfde
+    grafiek hetzelfde beginpunt EN hetzelfde eindpunt, dan bedekken hun stukken elkaar en worden ze gestippeld, met de
+    streepjes om en om zodat je ze allemaal ziet. Kruisen lijnen elkaar enkel, dan blijven ze doorlopend."""
+    namen = list(reeksen)
+    perioden = [str(eind) for eind, _ in periodes]
+    volledig = {str(eind): f"{begin}-{eind}" for eind, begin in periodes}
+
+    # Alle punten (voor de bolletjes en de hover)
+    punten = pd.DataFrame(
+        [
+            {"reeks": naam, "periode": perioden[i], "volledig": volledig[perioden[i]], "aantal": reeksen[naam][i]}
+            for naam in namen
+            for i in range(len(perioden))
+        ]
+    )
+
+    # Lijnstukken: per stuk (periode i -> i+1) groeperen we de reeksen met dezelfde (begin, eind)
+    stukken = []
+    for i in range(len(perioden) - 1):
+        groepen = {}
+        for naam in namen:
+            groepen.setdefault((reeksen[naam][i], reeksen[naam][i + 1]), []).append(naam)
+        for leden in groepen.values():
+            k = len(leden)  # aantal reeksen op dit stuk
+            for r, naam in enumerate(leden):  # r = rang binnen de groep
+                for j in (i, i + 1):
+                    stukken.append(
+                        {
+                            "reeks": naam,
+                            "periode": perioden[j],
+                            "aantal": reeksen[naam][j],
+                            "stuk": f"{naam}|{i}",  # elk stuk is een eigen lijntje
+                            "patroon": f"{k}-{r}" if k > 1 else "enkel",
+                        }
+                    )
+    stukken = pd.DataFrame(stukken)
+
+    x = alt.X("periode:O", title="Periode (eindjaar van 3 jaar)", axis=alt.Axis(labelAngle=0), scale=alt.Scale(domain=perioden))
+    y = alt.Y("aantal:Q", title="Aantal zwarte punten", scale=alt.Scale(zero=True))
+    kleur = alt.Color("reeks:N", title=None, scale=alt.Scale(domain=namen))  # vaste volgorde en kleuren
+
+    lijnen = alt.Chart(stukken).encode(x=x, y=y, color=kleur, detail="stuk:N")
+    lagen = []
+    for patroon in sorted(stukken["patroon"].unique()):
+        laag = lijnen.transform_filter(alt.datum.patroon == patroon)
+        if patroon == "enkel":
+            lagen.append(laag.mark_line())
+        else:
+            k, r = (int(v) for v in patroon.split("-"))
+            # k reeksen delen het stuk: reeks r tekent zijn streepje op plek r van een periode van k streepjes
+            dash = [STREEP, STREEP * (k - 1)] if r == 0 else [0, STREEP * r, STREEP, STREEP * (k - 1 - r)]
+            lagen.append(laag.mark_line(strokeDash=dash))
+    lagen.append(
+        alt.Chart(punten)
+        .mark_point(filled=True, size=60, opacity=1)
+        .encode(
+            x=x,
+            y=y,
+            color=kleur,
+            tooltip=[
+                alt.Tooltip("reeks:N", title="Reeks"),
+                alt.Tooltip("volledig:N", title="Periode"),
+                alt.Tooltip("aantal:Q", title="Zwarte punten"),
+            ],
+        )
+    )
+    st.subheader(titel)
+    st.altair_chart(alt.layer(*lagen), width="stretch")
+
+
+with tab_evolutie:
+    # Voor elke periode van 3 jaar (2017-2019, 2018-2020, ..., 2022-2024) zoeken we de zwarte punten in heel België,
+    # met dezelfde instellingen als in het tandwiel van het tabblad Kaart.
+    periodes = [(eind, eind - PERIODE_JAREN + 1) for eind in range(JAAR_MIN + PERIODE_JAREN - 1, JAAR_MAX + 1)]
+    per_periode = []
+    for eind, begin in periodes:
+        in_periode = df["jaar"].between(begin, eind)
+        p = df[in_periode & df["coord_status"].isin(["ok", "hersteld"])].reset_index(drop=True)
+        per_periode.append({"spots": spots_voor_periode(p), "met_coord": len(p), "alle": int(in_periode.sum())})
+
+    def aantallen(kolom=None, waarde=None):
+        """Aantal zwarte punten per periode, voor heel België of voor één gewest of provincie."""
+        return [
+            len(x["spots"]) if kolom is None else int((x["spots"][kolom] == waarde).sum()) for x in per_periode
+        ]
+
+    def provincies_van(gewest):
+        return sorted(df.loc[df["gewest"] == gewest, "provincie"].unique())
+
+    toon_lijngrafiek(
+        "België",
+        {"Totaal": aantallen()} | {naam: aantallen("gewest", gewest) for gewest, naam in GEWEST_NAAM.items()},
+        periodes,
+    )
+    toon_lijngrafiek(
+        "Vlaanderen: provincies",
+        {p: aantallen("provincie", p) for p in provincies_van("Vlaams Gewest")},
+        periodes,
+    )
+    toon_lijngrafiek(
+        "Wallonië: provincies",
+        {p: aantallen("provincie", p) for p in provincies_van("Waals Gewest")},
+        periodes,
+    )
+
+    toon_dekking(
+        int(df["coord_status"].isin(["ok", "hersteld"]).sum()),
+        len(df),
+        "België",
+        "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten (2017-2024).",
+    )
+    st.caption(
+        "Bruikbare coördinaten per periode (ongevallen met coördinaten / alle ongevallen): "
+        + " · ".join(f"{eind}: {x['met_coord'] / x['alle'] * 100:.1f} %".replace(".", ",") for (eind, _), x in zip(periodes, per_periode))
+        + ". Let op: de dekking stijgt vanaf 2022; een stijging in de grafieken is dus deels een meeteffect (zie aanames.txt 3.4)."
+    )
+    st.caption(
+        f"Instellingen zoals in het tandwiel van het tabblad Kaart: afstand {straal} m, methode {methode}, "
+        f"zwart punt vanaf {score_drempel} punten en minstens {min_totaal} ongevallen. Een punt telt mee bij het gewest en de "
+        "provincie waar de meeste van zijn ongevallen liggen."
+    )
 
 # ---------- Tab Data View, deel 2: foute coördinaten (onderaan hetzelfde tabblad) ----------
 with tab_data:

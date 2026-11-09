@@ -199,9 +199,41 @@ Definitie in dit project:
 
 7. FILTERS EN WEERGAVE
 ----------------------
-- De app heet "Zwarte Punten" en heeft 2 tabbladen, in deze volgorde: "Kaart" en "Data View". (Het tabblad "Kaart"
-  heette eerst "Zwarte punten"; het tabblad "Overzicht" heet nu "Data View"; het tabblad "Foute coördinaten" is
-  onderaan "Data View" gezet.)
+- De app heet "Zwarte Punten" en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (Het tabblad
+  "Kaart" heette eerst "Zwarte punten"; het tabblad "Overzicht" heet nu "Data View"; het tabblad "Foute coördinaten"
+  is onderaan "Data View" gezet.)
+- TABBLAD "EVOLUTIE" (sinds 2026-11-09): 3 lijngrafieken met het aantal zwarte punten per periode van 3 jaar. De punten
+  zijn met lijnen verbonden en je ziet de waarden in een hover.
+      1. "België": 4 reeksen: Totaal, Vlaanderen (Vlaams Gewest), Brussels Gewest en Wallonië (Waals Gewest).
+      2. "Vlaanderen: provincies": Antwerpen, Limburg, Oost-Vlaanderen, Vlaams-Brabant, West-Vlaanderen.
+      3. "Wallonië: provincies": Henegouwen, Luik, Luxemburg, Namen, Waals-Brabant.
+  * Stippellijn (automatische regel, voor alle grafieken en alle data): een lijnstuk tussen twee opeenvolgende periodes
+    wordt gestippeld als minstens één andere reeks in dezelfde grafiek in dat stuk EXACT hetzelfde beginpunt en hetzelfde
+    eindpunt heeft (de stukken bedekken elkaar). Lijnen die elkaar enkel kruisen of raken blijven doorlopend. De regel geldt
+    per lijnstuk: een reeks kan dus deels doorlopend en deels gestippeld zijn. Vallen k reeksen samen, dan staan hun
+    streepjes om en om (elke reeks een eigen plek in een patroon van k streepjes), zodat je ze allemaal ziet.
+    Voorbeeld met de huidige data: Luxemburg en Waals-Brabant hebben in alle 6 periodes 0 zwarte punten en zijn daarom in
+    alle 5 stukken gestippeld. Verandert de data of het tandwiel, dan verandert de stippeling vanzelf mee.
+    Aannames: overlap = exact gelijke aantallen (gehele getallen, dus geen afrondingsprobleem); de punten (bolletjes) liggen
+    op samenvallende plekken ook op elkaar (de hover toont dan de bovenste reeks); de streeplengte (6 pixels) is opmaak.
+  * Periode: 3 jaar, op de x-as benoemd naar het EINDJAAR: 2019 = 2017-2019, 2020 = 2018-2020, ..., 2024 = 2022-2024
+    (6 punten). De volledige periode staat in de hover.
+  * Per periode worden de zwarte punten opnieuw gezocht in heel België met DEZELFDE INSTELLINGEN als in het tandwiel van
+    het tabblad Kaart (afstand, methode, punten, drempel, minimum ongevallen en extra voorwaarden), altijd als "vaste
+    locaties" (ook als je in de Kaart "Elk jaar apart" kiest). Verander je het tandwiel, dan veranderen de grafieken mee.
+  * Een zwart punt telt mee bij het gewest en de provincie waar de MEESTE van zijn ongevallen liggen (zoals bij de
+    tabel in de Kaart). Brussel heeft geen provincie en staat dus enkel in de eerste grafiek.
+  * Standaard (score 15, min. 3 ongevallen, 50 m) komt het aantal zwarte punten uit op:
+        eindjaar:           2019  2020  2021  2022  2023  2024
+        Totaal               183   141   116   140   180   215
+        Vlaanderen           119    85    70    82    98   124
+        Brussels Gewest       55    47    42    53    72    74
+        Wallonië               9     9     4     5    10    17
+    De gewesten tellen in elke periode op tot het Totaal, en de provincies tellen op tot hun gewest (gecontroleerd).
+  * Onder de grafieken staat de verhouding weergegeven/totaal (2017-2024: 253.651 / 289.532 = 87,6 %) en de dekking per
+    periode: 2019: 83,6 % · 2020: 82,4 % · 2021: 81,9 % · 2022: 86,5 % · 2023: 91,5 % · 2024: 95,4 %.
+    LET OP: de dekking stijgt vanaf 2022, dus een stijging in de laatste jaren is deels een meeteffect (zie 3.4).
+    De grafieken zijn niet gecorrigeerd voor die verschillende dekking.
 - Elk tabblad heeft eigen filters bovenaan: één gewest, één provincie, één gemeente, jaren en types.
   Een wijziging in een tabblad verandert niets in het andere tabblad.
 - Kies je een ander gewest, dan springen provincie en gemeente terug naar "Alle".
