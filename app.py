@@ -392,22 +392,30 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
             return {str(j): int(per_jaar[j]) for j in alle_jaren}
         return {"Zwarte punten": len(deel)}
 
-    rijen = [{"Groep": "België", "Gebied": "België", **tel(spots)}]
-    rijen += [{"Groep": "Gewesten", "Gebied": g, **tel(spots[spots["gewest"] == g])} for g in sorted(df["gewest"].unique())]
-    rijen += [
-        {"Groep": "Provincies", "Gebied": p, **tel(spots[spots["provincie"] == p])} for p in sorted(df["provincie"].unique())
+    groepen = [
+        ("België", [("België", spots)]),
+        ("Gewesten", [(g, spots[spots["gewest"] == g]) for g in sorted(df["gewest"].unique())]),
+        ("Provincies", [(p, spots[spots["provincie"] == p]) for p in sorted(df["provincie"].unique())]),
     ]
-    st.dataframe(pd.DataFrame(rijen), width="stretch", hide_index=True, height=35 * (len(rijen) + 1) + 3)
+    # Drie afgebakende blokken naast elkaar, elk met een eigen kader en titel
+    for kolom, (titel, delen) in zip(st.columns([1, 1.3, 1.7]), groepen):
+        with kolom.container(border=True):
+            st.markdown(f"**{titel}**")
+            rijen = [{"Gebied": naam, **tel(deel)} for naam, deel in delen]
+            st.dataframe(pd.DataFrame(rijen), width="stretch", hide_index=True, height=35 * (len(rijen) + 1) + 3)
 
 
-def toon_kaart_en_tabel(spots, kolommen, dek):
+def toon_kaart_en_tabel(spots, kolommen, dek, onder_kaart=None):
     """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied.
+    `onder_kaart` is een functie die direct onder de kaart iets toont (hier: de telling per gebied).
 
     Alle cirkels zijn even groot (ze duiden de locatie aan); de kleur toont de score volgens vaste klassen."""
     kaart = spots[["lat", "lon"]].assign(kleur=spots["score"].map(score_kleur))
     st.map(kaart, latitude="lat", longitude="lon", color="kleur", size=CIRKEL_STRAAL)
     toon_legende()
     toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
+    if onder_kaart:
+        onder_kaart()
     st.dataframe(spots.reset_index(drop=True)[kolommen], width="stretch", hide_index=True)
     toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
 
@@ -537,14 +545,16 @@ with tab_punten:
             delen.append(voldoet(spots_jaar).assign(jaar=jaar))
         spots_nl = pd.concat(delen, ignore_index=True) if delen else pd.DataFrame()
 
-    st.subheader(f"Aantal zwarte punten, periode {jaren[0]}-{jaren[1]}")
-    toon_telling(spots_nl, alle_jaren, per_jaar_modus)
-    toon_dekking(
-        len(punten_nl),
-        int(df["jaar"].between(*jaren).sum()),
-        "België",
-        "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten; deze tabel telt heel België.",
-    )
+    def telling_onder_kaart():
+        """De tabel met het aantal zwarte punten (altijd heel België) onder de kaart."""
+        st.subheader(f"Aantal zwarte punten, periode {jaren[0]}-{jaren[1]}")
+        toon_telling(spots_nl, alle_jaren, per_jaar_modus)
+        toon_dekking(
+            len(punten_nl),
+            int(df["jaar"].between(*jaren).sum()),
+            "België",
+            "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten; deze tabel telt heel België.",
+        )
 
     spots = in_gebied(spots_nl, f2)
     if not per_jaar_modus:
@@ -553,29 +563,16 @@ with tab_punten:
     if not per_jaar_modus:
         if spots.empty:
             st.info("Geen zwarte punten met deze drempels. Verlaag een drempel of vergroot de afstand.")
+            telling_onder_kaart()
         else:
-            toon_kaart_en_tabel(spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], dek)
-
-            st.subheader("Evolutie van één zwart punt")
-            top = spots.head(200)
-            namen = {}
-            for n, (c, r) in enumerate(top.iterrows(), 1):
-                namen[c] = f"{n}. {r.gemeente} – {r.totaal} ongevallen, score {r.score:g}"
-            gekozen = st.selectbox(
-                f"Kies een zwart punt (top 200 op {maat})", list(namen), format_func=namen.get
+            toon_kaart_en_tabel(
+                spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], dek, onder_kaart=telling_onder_kaart
             )
-            evolutie = (
-                leden[leden["cluster"] == gekozen]
-                .groupby("jaar")[["licht", "zwaar", "doden"]]
-                .sum()
-                .reindex(alle_jaren, fill_value=0)
-            )
-            st.bar_chart(evolutie)
-            toon_dekking(*dek, "Enkel ongevallen met bruikbare coördinaten zitten in een zwart punt.")
 
     else:
         if spots.empty:
             st.info("Geen zwarte punten met deze drempels. Verlaag een drempel of vergroot de afstand.")
+            telling_onder_kaart()
         else:
             samenvatting = (
                 spots.groupby("jaar")
@@ -591,9 +588,10 @@ with tab_punten:
             van_jaar = spots[spots["jaar"] == jaar_keuze].sort_values(sorteer, ascending=False)
             if van_jaar.empty:
                 st.info(f"Geen zwarte punten in {jaar_keuze}.")
+                telling_onder_kaart()
             else:
                 dek_jaar = (int((punten["jaar"] == jaar_keuze).sum()), int((sel["jaar"] == jaar_keuze).sum()), plaats2)
-                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar)
+                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar, onder_kaart=telling_onder_kaart)
 
     # Uitleg en gekozen instellingen staan onder de kaart, zodat boven de kaart enkel de tabel staat.
     with st.expander("ℹ️ Uitleg en gekozen instellingen"):

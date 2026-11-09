@@ -58,7 +58,7 @@ kunnen worden uitgelegd.
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.
 - De app heet **Zwarte Punten**. In het tabblad **Kaart** staan alle keuzes (weergave, methode, afstand, punten, drempel, extra voorwaarden) in één menu ⚙️; bovenaan enkel de filters (gewest, provincie, gemeente, periode van 3 jaar met pijltjes; geen keuze voor het type: dat zit in de punten).
-- Boven de kaart staat enkel een **tabel met het aantal zwarte punten in de gekozen periode**, in 3 groepen: België, Gewesten, Provincies (altijd heel België).
+- Onder de kaart staat een **tabel met het aantal zwarte punten in de gekozen periode**, in 3 afgebakende blokken: België, Gewesten, Provincies (altijd heel België).
 - Tabbladen **Kaart** (eerst) en **Data View**, elk met eigen filters bovenaan. Kaart toont enkel info over zwarte punten.
 - **Data View** bevat bovenaan een uitklapbare data viewer (alle rijen van de selectie, sorteren, zoeken, kolomkeuze), daaronder het overzicht per type, de grafiek, de ranglijst, en onderaan de **foute coördinaten**.
 - Onder elke tabel, kaart en grafiek staat **"weergegeven / totaal geregistreerd"** in het gekozen gebied (bv. 253.651 / 289.532 = 87,6 % voor kaarten in heel België); onderaan staat de **bron** (Statbel).

@@ -161,7 +161,7 @@ Definitie in dit project:
   Voorbeeld met de OUDE instelling (methode Aantal, afstand 50 m, minstens 5 ongevallen totaal, alle jaren): 10.500 zwarte punten zonder extra voorwaarden;
   4.885 met "enkel licht telt niet mee"; 300 als zowel minstens 1 zwaargewonde ALS minstens 1 dode vereist is.
 - Weergave "Vaste locaties, aantallen per jaar": één keer zoeken over alle gekozen jaren. Elke plek blijft dezelfde
-  locatie en krijgt een kolom per jaar, plus een grafiek van de evolutie van één plek (top 200).
+  locatie en krijgt een kolom per jaar. (De grafiek "Evolutie van één zwart punt" is op 2026-11-09 verwijderd.)
 - Weergave "Elk jaar apart": per jaar een eigen zoektocht. Een plek kan in het ene jaar een zwart punt zijn en in het
   andere niet; punten van verschillende jaren liggen niet exact op dezelfde plek.
 - Kaart: elk zwart punt is een even grote cirkel (60 m, constante CIRKEL_STRAAL in app.py) op het gemiddelde van de
@@ -201,13 +201,14 @@ Definitie in dit project:
   Een wijziging in een tabblad verandert niets in het andere tabblad.
 - Kies je een ander gewest, dan springen provincie en gemeente terug naar "Alle".
 - Tabblad "Kaart": geen keuzelijst voor het type ongeval (alle types tellen mee via de punten 5/3/1, enkel de
-  puntenscore telt). Boven de kaart staat enkel de tabel met het aantal zwarte punten in de gekozen periode (zie
+  puntenscore telt). Onder de kaart staat de tabel met het aantal zwarte punten in de gekozen periode (zie
   onder). Alle andere keuzes (weergave, methode, afstand, minimum ongevallen, punten, drempel en extra voorwaarden)
   zitten in één menu "⚙️ Instellingen". Onder de kaart staat een uitklapbaar blok "Uitleg en gekozen instellingen".
 - Tabblad "Kaart": geen jaren-slider maar pijltjes ◀ ▶ om de "Periode" te kiezen (3 jaar: 2017-2019 tot
   2022-2024, standaard de laatste). Het tabblad Data View heeft nog de slider en de keuzelijst voor het type.
 - Tabblad "Kaart" toont enkel informatie over zwarte punten: het overzicht per type ongeval staat daar niet meer.
-- TABEL BOVEN DE KAART: aantal zwarte punten in de gekozen periode in 3 groepen: België, Gewesten (3) en Provincies
+- TABEL ONDER DE KAART (tussen de kaart met legende en de lijst van zwarte punten): aantal zwarte punten in de
+  gekozen periode in 3 afgebakende blokken met elk een kader en titel naast elkaar: België, Gewesten (3) en Provincies
   (11, inclusief "Geen provincie (Brussel)", dat dezelfde punten telt als het Brussels Gewest). Bij "Elk jaar apart"
   is er één kolom per jaar. De tabel telt ALTIJD heel België, ook als je op een gebied filtert. Controle (2022-2024,
   standaard): België 215 = gewesten 74 + 124 + 17 = provincies 78 + 74 + 6 + 8 + 9 + 0 + 2 + 28 + 5 + 0 + 5.
