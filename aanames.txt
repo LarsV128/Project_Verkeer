@@ -163,7 +163,8 @@ Definitie in dit project:
   * Bij "Elk jaar apart" geldt de verhouding voor het gekozen jaar. Let op: de dekking verschilt per jaar (3.4).
   * Tabblad "Foute coördinaten": per kaart de verhouding voor die gemeente (alle jaren en types).
 - Onderaan de app staat de bron: Statbel, verkeersongevallen (open data), 2017-2024, met de vermelding dat de data hier
-  is opgeschoond (coördinaten omgerekend, 2 waarden hersteld). De exacte naam of link is niet uit het bestand gehaald.
+  is opgeschoond (coördinaten omgerekend, 2 waarden hersteld). Link (door jou aangeleverd):
+  https://statbel.fgov.be/sites/default/files/files/opendata/Accident_XY/OPENDATA_MAP_2017-2024.xlsx
 
 
 8. NOG OPEN

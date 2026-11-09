@@ -592,7 +592,8 @@ with tab_fout:
 # ---------- Bron (onder alle tabbladen) ----------
 st.divider()
 st.caption(
-    "**Bron:** Statbel, verkeersongevallen (open data), 2017-2024 (bestand OPENDATA_MAP_2017-2024). "
+    "**Bron:** Statbel, verkeersongevallen (open data), 2017-2024: "
+    "[OPENDATA_MAP_2017-2024.xlsx](https://statbel.fgov.be/sites/default/files/files/opendata/Accident_XY/OPENDATA_MAP_2017-2024.xlsx). "
     "Opgeschoond en bewerkt in dit project: coördinaten omgerekend naar breedte- en lengtegraad en 2 onmogelijke "
     "waarden hersteld (zie het tabblad Foute coördinaten). Ongevallen zonder bruikbare coördinaten staan niet op de kaart."
 )
