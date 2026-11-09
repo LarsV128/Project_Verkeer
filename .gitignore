@@ -1,0 +1,13 @@
+# Ruwe data: te groot, niet uploaden (enkel de lege map via .gitkeep)
+data/raw/*
+!data/raw/.gitkeep
+
+# Opgeschoonde data is reproduceerbaar met: python clean_data.py
+data/*_clean*.parquet
+
+# Python
+__pycache__/
+*.pyc
+
+# Geheimen
+.env

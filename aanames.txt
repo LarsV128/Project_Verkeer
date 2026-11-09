@@ -1,0 +1,159 @@
+AANNAMES EN INSTELLINGEN - Verkeersongevallen in België, 2017-2024
+====================================================================
+Dit zijn alle keuzes die in de data en de app zitten, uitgeschreven zodat je ze kan uitleggen en aanpassen.
+Waar een keuze staat ("in de app" of "in clean_data.py"), zie je ook waar je ze kan veranderen.
+
+Bijgewerkt: 2026-10-27
+
+
+1. DATA
+-------
+- Bron: data/raw/OPENDATA_MAP_2017-2024.txt (289.532 rijen). Dit bestand wordt nooit gewijzigd (hook protect_raw.py).
+- Eén rij = één ongeval. Er is niet ontdubbeld.
+- Opgeschoonde versie: data/OPENDATA_MAP_2017-2024_clean.parquet, gemaakt door clean_data.py.
+- Scheidingsteken in de bron is "|". Tot en met 2022 is het decimaalteken een komma, vanaf 2023 een punt.
+  De cleaning zet beide om naar een getal.
+- We gebruiken de Nederlandse tekstkolommen (TX_*_NL).
+- Brussel heeft geen provincie in de bron. We vullen "Geen provincie (Brussel)" in en laten het voorvoegsel
+  "Provincie " weg bij de andere provincies.
+- Alleen kolommen die de app nodig heeft bleven bewaard: jaar, maand, uur, nis, gewest, provincie, gemeente,
+  class_accident (+code) en de coördinaten. Weer, wegtype, weggebruikers enz. zitten nog niet in de clean-versie.
+
+
+2. TYPES ONGEVAL (class_accident) EN GROEPEN
+--------------------------------------------
+Code 1  Met doden
+Code 2  Dodelijk gewonden
+Code 3  Met zwaargewonden
+Code 4  Met lichtgewonden
+
+Voor scores en zwarte punten groeperen we zo (VOORLOPIG, nog te bevestigen):
+- licht  = code 4
+- zwaar  = code 3
+- doden  = code 1 EN code 2 samen
+Waar in de code: LICHT, ZWAAR, DODEN bovenaan app.py.
+Open vraag: wat is het verschil tussen code 1 en code 2? (navragen in de cursus of bij Tim)
+
+
+3. COÖRDINATEN
+--------------
+3.1 Coördinatenstelsel en omrekening
+- De bron staat in Lambert72 (Belgian Lambert 72, EPSG:31370), in meters.
+- Voor de kaart rekenen we om naar breedtegraad en lengtegraad (WGS84, EPSG:4326) met pyproj:
+      Transformer.from_crs(31370, 4326, always_xy=True)
+  Controle: het midden van Brussel komt uit op 50,85 N / 4,36 O en heel België ligt tussen 49,5 en 51,5 N.
+- Afstanden voor de zwarte punten berekenen we in Lambert72 (meters), niet in graden.
+
+3.2 Status per rij (kolom coord_status)
+- ok          X en Y aanwezig en binnen België.            253.649 rijen
+- hersteld    onmogelijke waarde, hersteld (zie 3.3).             2 rijen
+- ontbreekt   X of Y is leeg.                              35.881 rijen
+- onmogelijk  buiten België en niet te herstellen.               0 rijen
+- "Binnen België" betekent: X tussen 14.000 en 300.000 en Y tussen 20.000 en 250.000 (ruim genomen).
+  Waar: X_BEREIK en Y_BEREIK bovenaan clean_data.py.
+- Voor de kaart en de zwarte punten gebruiken we "ok" en "hersteld": 253.651 ongevallen.
+- Rijen met een ontbrekende coördinaat blijven in alle tellingen, maar staan niet op de kaart.
+
+3.3 De twee onmogelijke coördinaten (beide 2022, Vlaams Gewest)
+- In de bron staan de waarden in wetenschappelijke notatie, waarschijnlijk een Excel-afronding:
+      Knokke-Heist (regel 194901):  X = 7,30077E+15   Y = 2,26233E+14
+      Herentals    (regel 216740):  X = 1,8085E+16    Y = 2,004E+15
+  Alleen de eerste cijfers bleven over; de komma staat op de verkeerde plek.
+- Herstel (functie herstel() in clean_data.py): zet de komma zo dat de waarde in België valt en het dichtst
+  bij de mediaan van de andere ongevallen in dezelfde gemeente (zelfde NIS-code) ligt.
+- Resultaat:
+      Knokke-Heist:  X = 73.007,7   Y = 226.233,0   (lat 51,3407 / lon 3,2639)
+      Herentals:     X = 180.850,0  Y = 200.400,0   (lat 51,1129 / lon 4,8093)
+- Controle: beide punten liggen volgens een visuele controle op een weg. Daardoor is de aanname aannemelijk.
+  Knokke-Heist is sterk (71 ongevallen binnen 500 m); Herentals ligt aan de zuidrand van de gemeente met slechts
+  2 ongevallen binnen 500 m en blijft het zwakste punt.
+- De originele waarden staan in de kolommen x_bron en y_bron. Het tabblad "Foute coördinaten" toont ze met kaart.
+
+3.4 Dekking verschilt per jaar (belangrijk voor de evolutie)
+- Bruikbare coördinaten: 2017 84,7% - 2018 83,2% - 2019 82,8% - 2020 81,0% - 2021 81,7%
+                         2022 95,3% - 2023 96,8% - 2024 94,2%
+- Een stijging van het aantal zwarte punten in 2022-2024 is dus deels een meeteffect.
+  Bij het vergelijken van jaren: werk met aandelen, of enkel met ongevallen die coördinaten hebben.
+
+
+4. PUNTENSCORE
+--------------
+- Elk ongeval krijgt punten volgens zijn type:
+      licht  = 1 punt      zwaar = 3 punten      doden = 5 punten
+- Score van een plek of gemeente = som van de punten van de ongevallen.
+      Voorbeeld Charleroi: 93 licht x 1 + 6 zwaar x 3 + 1 dode x 5 = 116 punten.
+- Aanpassen in de app: tabblad "Zwarte punten", knop "Instellingen: puntenscore en extra voorwaarden" (tandwiel). De
+  punten per type gelden ook voor de ranglijst van gemeenten in het tabblad "Overzicht".
+
+
+5. ZWART PUNT (VOORLOPIGE DEFINITIE)
+------------------------------------
+De officiele definitie van "zwart punt" moet nog opgezocht worden en kan deze definitie vervangen.
+
+Definitie in dit project:
+  Een zwart punt is een plek waar, binnen een gekozen afstand, voldoende ongevallen gebeurden.
+
+5.1 Hoe een zwart punt wordt gevonden ("buren tellen", functie zoek_clusters in app.py)
+  1. Voor elk ongeval tellen we het gewicht van alle ongevallen binnen de gekozen afstand (het ongeval zelf inbegrepen).
+  2. Het ongeval met de hoogste som vormt, samen met zijn buren, een zwart punt.
+  3. Die ongevallen worden weggenomen en we herhalen vanaf stap 2, zolang er een som boven de drempel overblijft.
+  Zo overlappen zwarte punten niet.
+- Waarom geen raster? Rastercellen snijden een cluster op een celrand door. Bij een vergelijking van cellen van 50 m
+  met een cirkel van 50 m diameter miste het raster 13% (drempel 5) tot 17% (drempel 10) van de ongevallen die de
+  cirkel wel vindt.
+- De plaats van een zwart punt op de kaart is het gemiddelde van de coördinaten van zijn ongevallen.
+
+5.2 Instellingen (tabblad "Zwarte punten")
+- Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
+- Methode "Aantal ongevallen": gewicht per ongeval = 1.
+      Minimum aantal ongevallen: standaard 5 (alle jaren samen) of 3 (per jaar). Minimum 2.
+- Methode "Puntenscore": gewicht per ongeval = zijn punten (zie 4).
+      Zwart punt vanaf: standaard 7 punten. Staat in het tandwiel, naast de punten per type.
+- Extra voorwaarden (optioneel, in het tandwiel, gelden voor beide methodes). Ze worden toegepast NADAT de zwarte
+  punten gevonden zijn; een plek die afvalt, wordt dus niet opnieuw opgesplitst.
+      * "Een plek met enkel lichtgewonden telt niet mee" (vinkje, standaard uit): een zwart punt heeft dan minstens
+        1 ongeval met zwaargewonden of doden. Handig om 7 lichtgewonden niet als zwart punt te tellen.
+      * Min. met lichtgewonden, min. met zwaargewonden, min. met doden (standaard 0 = geen voorwaarde).
+      * Keuze "en" / "of" voor het minimum zwaar en het minimum doden (standaard "en"):
+            en  = beide minimums moeten gehaald worden
+            of  = een van beide volstaat
+        Een minimum van 0 telt niet mee in die keuze. "of" met minimum 1 voor beide is hetzelfde als het vinkje.
+  Voorbeeld (afstand 50 m, minstens 5 ongevallen totaal, alle jaren): 10.500 zwarte punten zonder extra voorwaarden;
+  4.885 met "enkel licht telt niet mee"; 300 als zowel minstens 1 zwaargewonde ALS minstens 1 dode vereist is.
+- Weergave "Vaste locaties, aantallen per jaar": één keer zoeken over alle gekozen jaren. Elke plek blijft dezelfde
+  locatie en krijgt een kolom per jaar, plus een grafiek van de evolutie van één plek (top 200).
+- Weergave "Elk jaar apart": per jaar een eigen zoektocht. Een plek kan in het ene jaar een zwart punt zijn en in het
+  andere niet; punten van verschillende jaren liggen niet exact op dezelfde plek.
+- Kaart: de grootte van een bol is 15 meter x (score of aantal).
+- Gevolg van 1 / 3 / 5 met drempel 7: één dode plus één zwaargewonde (5+3=8) is een zwart punt; één dode plus
+  één lichtgewonde (5+1=6) nog niet; zeven lichtgewonden wel.
+
+
+6. RANGLIJST VAN GEMEENTEN (tabblad "Overzicht")
+------------------------------------------------
+- Rangschikking op puntenscore (zie 4), positie 1 = hoogste score. Bij gelijke score: eerst het hoogste aantal
+  ongevallen, daarna alfabetisch.
+- De nummering loopt over alle gemeenten van België (581) die in de gekozen jaren en types ongevallen hebben.
+- Gewest of provincie gekozen: alle gemeenten daarin, met hun positie in België.
+- Gemeente gekozen: top 5, onderste 5 en de gemeenten rondom (maximaal 5 erboven en 5 eronder).
+- Let op: grote gemeenten hebben meer ongevallen en staan dus hoger. Er is geen correctie voor inwonersaantal.
+
+
+7. FILTERS EN WEERGAVE
+----------------------
+- Elk tabblad heeft eigen filters bovenaan: één gewest, één provincie, één gemeente, jaren en types.
+  Een wijziging in een tabblad verandert niets in de andere tabbladen.
+- Kies je een ander gewest, dan springen provincie en gemeente terug naar "Alle".
+- Elk tabblad toont een overzicht per type ongeval voor de gekozen selectie.
+- Er is geen zijbalk meer. De instellingen voor puntenscore en extra voorwaarden staan in het tandwiel in het tabblad
+  "Zwarte punten".
+- Poort van de app: 1234 (streamlit run app.py --server.port 1234).
+
+
+8. NOG OPEN
+-----------
+- Officiele definitie van "zwart punt" opzoeken.
+- Verschil tussen code 1 (Met doden) en code 2 (Dodelijk gewonden) navragen.
+- Eerlijk vergelijken over jaren, rekening houdend met de verschillende dekking van de coördinaten (3.4).
+- Eventueel een correctie voor inwonersaantal bij de ranglijst van gemeenten.
+- De hook protect_raw.py verfijnen: hij blokkeert nu ook het lezen met open("data/raw/...").
