@@ -316,10 +316,14 @@ def bouw_spots(punten, cluster, gewicht):
     return leden, spots
 
 
-def toon_kaart_en_tabel(spots, kolommen, maat, dek):
-    """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied."""
-    kaart = spots.assign(grootte=spots[maat] * 15)  # st.map-grootte is in meter
-    st.map(kaart, latitude="lat", longitude="lon", size="grootte")
+CIRKEL_STRAAL = 60  # meter; elk zwart punt is even groot, de cirkel duidt enkel de locatie aan
+
+
+def toon_kaart_en_tabel(spots, kolommen, dek):
+    """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied.
+
+    De score of het aantal staat in de tabel; de cirkels zijn bewust allemaal even groot."""
+    st.map(spots[["lat", "lon"]], latitude="lat", longitude="lon", size=CIRKEL_STRAAL)
     toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
     st.dataframe(spots.reset_index(drop=True)[kolommen], width="stretch", hide_index=True)
     toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
@@ -336,37 +340,41 @@ with tab_punten:
         "(3 jaar, score van minstens 15, minstens 3 ongevallen), maar tellen **per ongeval** en niet per slachtoffer: "
         "de bron bevat geen slachtoffers. *De afstand dient enkel om ongevallen tot één punt samen te voegen.*"
     )
-    r1, r2 = st.columns(2)
-    modus = r1.radio("Weergave", [MODUS_VAST, MODUS_JAAR], horizontal=True)
-    methode = r2.radio("Wanneer is het een zwart punt?", [METHODE_AANTAL, METHODE_SCORE], index=1, horizontal=True)
-    per_jaar_modus = modus == MODUS_JAAR
-    score_modus = methode == METHODE_SCORE
-    eenheid = "per jaar" if per_jaar_modus else "totaal"
-
-    if per_jaar_modus:
-        st.caption(
-            "Elk jaar wordt apart onderzocht. Een plek kan in het ene jaar een zwart punt zijn en in het andere niet; "
-            "punten van verschillende jaren liggen niet op exact dezelfde plek."
+    # Alle keuzes zitten in dit ene menu; bovenaan het tabblad staan enkel de filters.
+    with st.popover("⚙️ Instellingen"):
+        st.markdown("**Weergave en zoeken**")
+        modus = st.radio("Weergave", [MODUS_VAST, MODUS_JAAR], horizontal=True)
+        methode = st.radio("Wanneer is het een zwart punt?", [METHODE_AANTAL, METHODE_SCORE], index=1, horizontal=True)
+        per_jaar_modus = modus == MODUS_JAAR
+        score_modus = methode == METHODE_SCORE
+        eenheid = "per jaar" if per_jaar_modus else "totaal"
+        if per_jaar_modus:
+            st.caption(
+                "Elk jaar wordt apart onderzocht. Een plek kan in het ene jaar een zwart punt zijn en in het andere niet; "
+                "punten van verschillende jaren liggen niet op exact dezelfde plek."
+            )
+        else:
+            st.caption(
+                "Eén keer zoeken over alle gekozen jaren samen. Elke plek blijft dezelfde locatie, zodat je ze per jaar "
+                "kan vergelijken."
+            )
+        straal = st.select_slider(
+            "Afstand (m)",
+            options=[25, 50, 75, 100, 150, 200],
+            value=50,
+            help="Ongevallen binnen deze afstand worden samengenomen tot één zwart punt (op het gemiddelde van hun plaats).",
         )
-    else:
-        st.caption(
-            "Eén keer zoeken over alle gekozen jaren samen. Elke plek blijft dezelfde locatie, zodat je ze per jaar "
-            "kan vergelijken."
+        min_totaal = st.number_input(
+            f"Min. ongevallen ({eenheid})",
+            min_value=2,
+            value=3,
+            step=1,
+            key="min_jaar" if per_jaar_modus else "min_vast",
+            help="Bij 'Aantal ongevallen': de drempel zelf. Bij 'Puntenscore': een extra voorwaarde naast de score "
+            "(Vlaanderen: minstens 3 ongevallen).",
         )
 
-    c1, c2, c3 = st.columns(3)
-    straal = c1.select_slider("Afstand (m)", options=[25, 50, 75, 100, 150, 200], value=50)
-    min_totaal = c2.number_input(
-        f"Min. ongevallen ({eenheid})",
-        min_value=2,
-        value=3,
-        step=1,
-        key="min_jaar" if per_jaar_modus else "min_vast",
-        help="Bij 'Aantal ongevallen': de drempel zelf. Bij 'Puntenscore': een extra voorwaarde naast de score "
-        "(Vlaanderen: minstens 3 ongevallen).",
-    )
-
-    with c3.popover("⚙️ Instellingen: puntenscore en extra voorwaarden"):
+        st.divider()
         st.markdown("**Puntenscore**")
         st.caption(
             "Elk ongeval telt mee met de punten van zijn type. Gebruikt bij de methode 'Puntenscore' en voor de "
@@ -397,6 +405,7 @@ with tab_punten:
         )
 
     inst = punten_instellingen()
+    st.caption(f"Weergave: {modus} · afstand {straal} m · methode: {methode} (aanpassen via ⚙️ Instellingen).")
     if score_modus:
         st.caption(
             f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden, per ongeval (niet per "
@@ -415,7 +424,7 @@ with tab_punten:
     if voorwaarden:
         st.caption(f"Extra voorwaarden ({eenheid}): " + "; ".join(voorwaarden) + ".")
     drempel = score_drempel if score_modus else min_totaal
-    maat = "score" if score_modus else "totaal"
+    maat = "score" if score_modus else "totaal"  # waarop de tabellen gesorteerd worden
     sorteer = [maat, "doden", "zwaar"]
 
     def gewichten(p):
@@ -468,7 +477,7 @@ with tab_punten:
         if spots.empty:
             st.info("Geen zwarte punten met deze drempels. Verlaag een drempel of vergroot de afstand.")
         else:
-            toon_kaart_en_tabel(spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], maat, dek)
+            toon_kaart_en_tabel(spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], dek)
 
             st.subheader("Evolutie van één zwart punt")
             top = spots.head(200)
@@ -519,7 +528,7 @@ with tab_punten:
                 st.info(f"Geen zwarte punten in {jaar_keuze}.")
             else:
                 dek_jaar = (int((punten["jaar"] == jaar_keuze).sum()), int((sel["jaar"] == jaar_keuze).sum()), plaats2)
-                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], maat, dek_jaar)
+                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar)
 
 # ---------- Tab 3: foute coördinaten ----------
 with tab_fout:
