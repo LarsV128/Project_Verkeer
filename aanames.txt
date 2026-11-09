@@ -94,7 +94,7 @@ Wat de pagina zegt (samengevat; de Vlaamse tekst staat hier uitgeschreven zodat 
 Wat wij overnemen en wat niet:
 - Gewichten 1 / 3 / 5: overgenomen, instelbaar in de app (tandwiel). De factor 1,7 NIET (zie afwijking 2).
 - Drempel 15 punten en minstens 3 ongevallen: standaard in de app (methode "Puntenscore").
-- Periode van 3 jaar: in het tabblad Zwarte punten kies je met pijltjes een periode van 3 jaar (2017-2019, 2018-2020,
+- Periode van 3 jaar: in het tabblad Kaart kies je met pijltjes een periode van 3 jaar (2017-2019, 2018-2020,
   ..., 2022-2024); standaard de laatste. (Je noemde "2017-2020"; dat zijn 4 jaar. Ik koos 3 jaar zoals Vlaanderen.)
 - AFWIJKING 1: wij tellen per ONGEVAL, niet per slachtoffer. De bron heeft geen aantal slachtoffers per ongeval, enkel
   het zwaarste type (class_accident). Een ongeval met 3 lichtgewonden telt dus 1 punt, niet 3. Onze scores liggen
@@ -114,7 +114,7 @@ Praktisch:
 - Elk ongeval krijgt punten volgens zijn type:
       licht  = 1 punt      zwaar = 3 punten      doden = 5 punten
 - Score van een plek of gemeente = som van de punten van de ongevallen.
-- Aanpassen in de app: tabblad "Zwarte punten", knop "⚙️ Instellingen" (één menu met alle keuzes). De
+- Aanpassen in de app: tabblad "Kaart", knop "⚙️ Instellingen" (één menu met alle keuzes). De
   punten per type gelden ook voor de ranglijst van gemeenten in het tabblad "Data View".
 
 
@@ -138,7 +138,7 @@ Definitie in dit project:
   cirkel wel vindt.
 - De plaats van een zwart punt op de kaart is het gemiddelde van de coördinaten van zijn ongevallen.
 
-5.2 Instellingen (tabblad "Zwarte punten")
+5.2 Instellingen (tabblad "Kaart")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
 - Methode "Aantal ongevallen": gewicht per ongeval = 1.
       Minimum aantal ongevallen: standaard 3 (was 5 voor alle jaren samen). Minimum 2.
@@ -194,23 +194,34 @@ Definitie in dit project:
 
 7. FILTERS EN WEERGAVE
 ----------------------
-- De app heeft 2 tabbladen, in deze volgorde: "Zwarte punten" en "Data View". (Het tabblad "Overzicht" heet nu
-  "Data View"; het tabblad "Foute coördinaten" is onderaan "Data View" gezet.)
+- De app heet "Zwarte Punten" en heeft 2 tabbladen, in deze volgorde: "Kaart" en "Data View". (Het tabblad "Kaart"
+  heette eerst "Zwarte punten"; het tabblad "Overzicht" heet nu "Data View"; het tabblad "Foute coördinaten" is
+  onderaan "Data View" gezet.)
 - Elk tabblad heeft eigen filters bovenaan: één gewest, één provincie, één gemeente, jaren en types.
   Een wijziging in een tabblad verandert niets in het andere tabblad.
 - Kies je een ander gewest, dan springen provincie en gemeente terug naar "Alle".
-- Tabblad "Zwarte punten": boven het tabblad staan enkel de filters; alle andere keuzes (weergave, methode, afstand,
-  minimum ongevallen, punten, drempel en extra voorwaarden) zitten in één menu "⚙️ Instellingen". Daaronder staat een
-  samenvatting van de gekozen instellingen.
-- Tabblad "Zwarte punten": geen jaren-slider maar pijltjes ◀ ▶ om de "Periode" te kiezen (3 jaar: 2017-2019 tot
-  2022-2024, standaard de laatste). Het tabblad Data View heeft nog de slider.
-- Tabblad "Zwarte punten" toont enkel informatie over zwarte punten: het overzicht per type ongeval staat daar niet meer.
+- Tabblad "Kaart": geen keuzelijst voor het type ongeval (alle types tellen mee via de punten 5/3/1, enkel de
+  puntenscore telt). Boven de kaart staat enkel de tabel met het aantal zwarte punten in de gekozen periode (zie
+  onder). Alle andere keuzes (weergave, methode, afstand, minimum ongevallen, punten, drempel en extra voorwaarden)
+  zitten in één menu "⚙️ Instellingen". Onder de kaart staat een uitklapbaar blok "Uitleg en gekozen instellingen".
+- Tabblad "Kaart": geen jaren-slider maar pijltjes ◀ ▶ om de "Periode" te kiezen (3 jaar: 2017-2019 tot
+  2022-2024, standaard de laatste). Het tabblad Data View heeft nog de slider en de keuzelijst voor het type.
+- Tabblad "Kaart" toont enkel informatie over zwarte punten: het overzicht per type ongeval staat daar niet meer.
+- TABEL BOVEN DE KAART: aantal zwarte punten in de gekozen periode in 3 groepen: België, Gewesten (3) en Provincies
+  (11, inclusief "Geen provincie (Brussel)", dat dezelfde punten telt als het Brussels Gewest). Bij "Elk jaar apart"
+  is er één kolom per jaar. De tabel telt ALTIJD heel België, ook als je op een gebied filtert. Controle (2022-2024,
+  standaard): België 215 = gewesten 74 + 124 + 17 = provincies 78 + 74 + 6 + 8 + 9 + 0 + 2 + 28 + 5 + 0 + 5.
+- WERKWIJZE SINDS 2026-11-09: de zwarte punten worden eerst voor heel België gezocht (alle ongevallen met bruikbare
+  coördinaten in de periode). De filters gewest/provincie/gemeente bepalen daarna enkel welke punten je op de kaart en
+  in de lijst ziet. Een punt hoort bij het gewest, de provincie en de gemeente waar de MEESTE van zijn ongevallen
+  liggen. Vroeger werd enkel gezocht onder de ongevallen van het gekozen gebied; bij een punt op een grens kan dat
+  een ander resultaat geven. De verhouding weergegeven/totaal onder de kaart blijft voor het gekozen gebied.
 - Tabblad "Data View" van boven naar onder: filters, uitklapbare "Data viewer" (alle rijen van de selectie, geen
   limiet meer van 1000, met sorteren, zoeken en een kolomkeuze), aantal ongevallen, overzicht per type, grafiek per
   jaar en type, ranglijst van gemeenten, en onderaan "Foute coördinaten" (status per type, de herstelde waarden en
   de kaarten).
 - Er is geen zijbalk meer. De instellingen voor puntenscore en extra voorwaarden staan in het tandwiel in het tabblad
-  "Zwarte punten".
+  "Kaart".
 - Het tabblad "Foute coördinaten" gebruikt nu de filters van "Data View" (niet langer eigen filters) voor de tabel
   met de status per type; de lijst met herstelde waarden en de kaarten tonen nog altijd alle ongevallen.
 - Poort van de app: 1234 (streamlit run app.py --server.port 1234).

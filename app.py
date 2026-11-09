@@ -17,8 +17,8 @@ DATA = Path(__file__).parent / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
 # class_accident_code -> groep voor de scores en zwarte punten
 LICHT, ZWAAR, DODEN = [4], [3], [1, 2]
 
-st.set_page_config(page_title="Verkeersongevallen", layout="wide", initial_sidebar_state="collapsed")
-st.title("Verkeersongevallen in België, 2017-2024")
+st.set_page_config(page_title="Zwarte Punten", layout="wide", initial_sidebar_state="collapsed")
+st.title("Zwarte Punten")
 
 
 @st.cache_data
@@ -111,11 +111,12 @@ def schuif_periode(key, stap):
     st.session_state[key] = min(max(st.session_state[key] + stap, JAAR_MIN), JAAR_MAX - PERIODE_JAREN + 1)
 
 
-def toon_filters(prefix, periode_pijltjes=False):
+def toon_filters(prefix, periode_pijltjes=False, types_filter=True):
     """Filters bovenaan een tabblad: één gewest, één provincie en/of één gemeente, jaren en types.
 
     Met `periode_pijltjes` kies je geen vrije jaren maar een periode van 3 jaar (2017-2019, 2018-2020, ...) die je
     met pijltjes opschuift; standaard de laatste 3 jaar.
+    Zonder `types_filter` is er geen keuzelijst voor het type ongeval: alle types tellen mee (via de punten).
     Geeft een object met de gekozen waarden en `sel`, de ongevallen die aan alles voldoen."""
     k1, k2, k3, k4 = st.columns(4)
     gewest = k1.selectbox("Gewest", ["Alle gewesten"] + sorted(df["gewest"].unique()), key=f"{prefix}_gewest")
@@ -142,7 +143,10 @@ def toon_filters(prefix, periode_pijltjes=False):
         jaren = (start, start + PERIODE_JAREN - 1)
     else:
         jaren = k4.slider("Jaren", JAAR_MIN, JAAR_MAX, (JAAR_MIN, JAAR_MAX), key=f"{prefix}_jaren")
-    types = st.multiselect("Type ongeval (class_accident)", TYPES, default=TYPES, key=f"{prefix}_types")
+    if types_filter:
+        types = st.multiselect("Type ongeval (class_accident)", TYPES, default=TYPES, key=f"{prefix}_types")
+    else:
+        types = TYPES
 
     sel = sel[sel["jaar"].between(*jaren) & sel["class_accident"].isin(types)]
     return SimpleNamespace(sel=sel, gewest=gewest, provincie=provincie, gemeente=gemeente, jaren=jaren, types=types)
@@ -263,7 +267,7 @@ def toon_ranglijst(filt):
     toon(g, titel)
 
 
-tab_punten, tab_data = st.tabs(["Zwarte punten", "Data View"])
+tab_punten, tab_data = st.tabs(["Kaart", "Data View"])
 
 # ---------- Tab Data View (met onderaan de foute coördinaten, zie verderop) ----------
 with tab_data:
@@ -324,6 +328,8 @@ def bouw_spots(punten, cluster):
         lat=("lat", "mean"),
         lon=("lon", "mean"),
         gemeente=("gemeente", lambda s: s.value_counts().index[0]),
+        provincie=("provincie", lambda s: s.value_counts().index[0]),
+        gewest=("gewest", lambda s: s.value_counts().index[0]),
     )
     spots["score"] = spots["score"].round(1)
     return leden, spots
@@ -360,6 +366,40 @@ def toon_legende():
     )
 
 
+def in_gebied(spots, filt):
+    """Houdt enkel de zwarte punten over in het gekozen gewest, de gekozen provincie en gemeente.
+
+    Een punt hoort bij het gebied waar de meeste van zijn ongevallen liggen."""
+    if filt.gewest != "Alle gewesten":
+        spots = spots[spots["gewest"] == filt.gewest]
+    if filt.provincie != "Alle provincies":
+        spots = spots[spots["provincie"] == filt.provincie]
+    if filt.gemeente != "Alle gemeenten":
+        spots = spots[spots["gemeente"] == filt.gemeente]
+    return spots
+
+
+def toon_telling(spots, alle_jaren, per_jaar_modus):
+    """Tabel met het aantal zwarte punten in de gekozen periode: België, gewesten en provincies.
+
+    Telt altijd heel België, ook als je hieronder op een gebied filtert. Bij 'Elk jaar apart' één kolom per jaar."""
+    if spots.empty:
+        spots = pd.DataFrame({"gewest": [], "provincie": [], "jaar": []})
+
+    def tel(deel):
+        if per_jaar_modus:
+            per_jaar = deel.groupby("jaar").size().reindex(alle_jaren, fill_value=0)
+            return {str(j): int(per_jaar[j]) for j in alle_jaren}
+        return {"Zwarte punten": len(deel)}
+
+    rijen = [{"Groep": "België", "Gebied": "België", **tel(spots)}]
+    rijen += [{"Groep": "Gewesten", "Gebied": g, **tel(spots[spots["gewest"] == g])} for g in sorted(df["gewest"].unique())]
+    rijen += [
+        {"Groep": "Provincies", "Gebied": p, **tel(spots[spots["provincie"] == p])} for p in sorted(df["provincie"].unique())
+    ]
+    st.dataframe(pd.DataFrame(rijen), width="stretch", hide_index=True, height=35 * (len(rijen) + 1) + 3)
+
+
 def toon_kaart_en_tabel(spots, kolommen, dek):
     """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied.
 
@@ -373,16 +413,9 @@ def toon_kaart_en_tabel(spots, kolommen, dek):
 
 
 with tab_punten:
-    f2 = toon_filters("punten", periode_pijltjes=True)
+    f2 = toon_filters("punten", periode_pijltjes=True, types_filter=False)
     sel, jaren = f2.sel, f2.jaren
 
-    st.markdown(
-        "Een **zwart punt** is hier een plek waar binnen de gekozen afstand genoeg (ernstige) ongevallen gebeurden. "
-        "We lijken op de puntentelling van Vlaanderen voor "
-        "[gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten) "
-        "(3 jaar, score van minstens 15, minstens 3 ongevallen), maar tellen **per ongeval** en niet per slachtoffer: "
-        "de bron bevat geen slachtoffers. *De afstand dient enkel om ongevallen tot één punt samen te voegen.*"
-    )
     # Alle keuzes zitten in dit ene menu; bovenaan het tabblad staan enkel de filters.
     with st.popover("⚙️ Instellingen"):
         st.markdown("**Weergave en zoeken**")
@@ -447,26 +480,7 @@ with tab_punten:
             "Een minimum van 0 telt niet mee.",
         )
 
-    inst = punten_instellingen()
-    st.caption(f"Weergave: {modus} · afstand {straal} m · methode: {methode} (aanpassen via ⚙️ Instellingen).")
-    if score_modus:
-        st.caption(
-            f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden, per ongeval (niet per "
-            f"slachtoffer). Zwart punt vanaf **{score_drempel} punten** en minstens **{min_totaal} ongevallen** ({eenheid})."
-        )
-    voorwaarden = []
-    if enkel_licht_telt_niet:
-        voorwaarden.append("minstens 1 ongeval met zwaargewonden of doden")
-    if min_licht:
-        voorwaarden.append(f"min. {min_licht} met lichtgewonden")
-    ernst_delen = ([f"min. {min_zwaar} met zwaargewonden"] if min_zwaar else []) + (
-        [f"min. {min_doden} met doden"] if min_doden else []
-    )
-    if ernst_delen:
-        voorwaarden.append(f" {ernst_combi} ".join(ernst_delen))
-    if voorwaarden:
-        st.caption(f"Extra voorwaarden ({eenheid}): " + "; ".join(voorwaarden) + ".")
-    drempel = score_drempel if score_modus else min_totaal
+    drempel =score_drempel if score_modus else min_totaal
     maat = "score" if score_modus else "totaal"  # waarop de tabellen gesorteerd worden
     sorteer = [maat, "doden", "zwaar"]
 
@@ -493,29 +507,50 @@ with tab_punten:
     basis_kolommen = ["gemeente", "score", "totaal", "licht", "zwaar", "doden"]
 
     plaats2 = plaats_label(f2)
-
-    punten = sel[sel["coord_status"].isin(["ok", "hersteld"])].reset_index(drop=True)
-    dek = (len(punten), len(sel), plaats2)
-    toon_dekking(*dek, "De rest heeft geen bruikbare coördinaten (ontbreekt of is fout) en staat niet op de kaart.")
     alle_jaren = list(range(jaren[0], jaren[1] + 1))
+    bruikbaar = ["ok", "hersteld"]
 
-    if punten.empty:
-        st.warning("Geen ongevallen met coördinaten in deze selectie.")
+    # Zwarte punten zoeken in heel België (alle types ongevallen, via de punten); de filters hierboven bepalen
+    # daarna enkel welke punten je op de kaart en in de lijst ziet. Zo klopt de tabel hieronder altijd voor België.
+    punten_nl = df[df["jaar"].between(*jaren) & df["coord_status"].isin(bruikbaar)].reset_index(drop=True)
+    punten = sel[sel["coord_status"].isin(bruikbaar)]  # enkel het gekozen gebied; voor de verhouding weergegeven/totaal
+    dek = (len(punten), len(sel), plaats2)
 
-    elif not per_jaar_modus:
-        w = gewichten(punten)
-        cluster = zoek_clusters(punten["x_lambert72"].to_numpy(), punten["y_lambert72"].to_numpy(), w, straal, drempel)
-        leden, spots = bouw_spots(punten, cluster)
+    if not per_jaar_modus:
+        w = gewichten(punten_nl)
+        cluster = zoek_clusters(punten_nl["x_lambert72"].to_numpy(), punten_nl["y_lambert72"].to_numpy(), w, straal, drempel)
+        leden, spots_nl = bouw_spots(punten_nl, cluster)
         per_jaar = (
             leden.groupby(["cluster", "jaar"]).size().unstack(fill_value=0).reindex(columns=alle_jaren, fill_value=0)
         )
         per_jaar.columns = [str(j) for j in per_jaar.columns]
-        spots = voldoet(spots).join(per_jaar).sort_values(sorteer, ascending=False)
+        spots_nl = voldoet(spots_nl).join(per_jaar)
+    else:
+        delen = []
+        for jaar in alle_jaren:
+            pj = punten_nl[punten_nl["jaar"] == jaar].reset_index(drop=True)
+            if pj.empty:
+                continue
+            w = gewichten(pj)
+            cluster = zoek_clusters(pj["x_lambert72"].to_numpy(), pj["y_lambert72"].to_numpy(), w, straal, drempel)
+            _, spots_jaar = bouw_spots(pj, cluster)
+            delen.append(voldoet(spots_jaar).assign(jaar=jaar))
+        spots_nl = pd.concat(delen, ignore_index=True) if delen else pd.DataFrame()
 
-        m1, m2 = st.columns(2)
-        m1.metric("Aantal zwarte punten", f"{len(spots):,}".replace(",", "."))
-        m2.metric("Ongevallen in die punten", f"{int(spots['totaal'].sum()):,}".replace(",", "."))
+    st.subheader(f"Aantal zwarte punten, periode {jaren[0]}-{jaren[1]}")
+    toon_telling(spots_nl, alle_jaren, per_jaar_modus)
+    toon_dekking(
+        len(punten_nl),
+        int(df["jaar"].between(*jaren).sum()),
+        "België",
+        "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten; deze tabel telt heel België.",
+    )
 
+    spots = in_gebied(spots_nl, f2)
+    if not per_jaar_modus:
+        spots = spots.sort_values(sorteer, ascending=False)
+
+    if not per_jaar_modus:
         if spots.empty:
             st.info("Geen zwarte punten met deze drempels. Verlaag een drempel of vergroot de afstand.")
         else:
@@ -539,17 +574,6 @@ with tab_punten:
             toon_dekking(*dek, "Enkel ongevallen met bruikbare coördinaten zitten in een zwart punt.")
 
     else:
-        delen = []
-        for jaar in alle_jaren:
-            pj = punten[punten["jaar"] == jaar].reset_index(drop=True)
-            if pj.empty:
-                continue
-            w = gewichten(pj)
-            cluster = zoek_clusters(pj["x_lambert72"].to_numpy(), pj["y_lambert72"].to_numpy(), w, straal, drempel)
-            _, spots_jaar = bouw_spots(pj, cluster)
-            delen.append(voldoet(spots_jaar).assign(jaar=jaar))
-        spots = pd.concat(delen, ignore_index=True) if delen else pd.DataFrame()
-
         if spots.empty:
             st.info("Geen zwarte punten met deze drempels. Verlaag een drempel of vergroot de afstand.")
         else:
@@ -570,6 +594,40 @@ with tab_punten:
             else:
                 dek_jaar = (int((punten["jaar"] == jaar_keuze).sum()), int((sel["jaar"] == jaar_keuze).sum()), plaats2)
                 toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar)
+
+    # Uitleg en gekozen instellingen staan onder de kaart, zodat boven de kaart enkel de tabel staat.
+    with st.expander("ℹ️ Uitleg en gekozen instellingen"):
+        st.markdown(
+            "Een **zwart punt** is hier een plek waar binnen de gekozen afstand genoeg (ernstige) ongevallen gebeurden. "
+            "We lijken op de puntentelling van Vlaanderen voor "
+            "[gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten) "
+            "(3 jaar, score van minstens 15, minstens 3 ongevallen), maar tellen **per ongeval** en niet per slachtoffer: "
+            "de bron bevat geen slachtoffers. Alle types ongevallen tellen mee via hun punten. "
+            "*De afstand dient enkel om ongevallen tot één punt samen te voegen.*"
+        )
+        inst = punten_instellingen()
+        st.caption(f"Weergave: {modus} · afstand {straal} m · methode: {methode} (aanpassen via ⚙️ Instellingen).")
+        if score_modus:
+            st.caption(
+                f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden, per ongeval (niet per "
+                f"slachtoffer). Zwart punt vanaf **{score_drempel} punten** en minstens **{min_totaal} ongevallen** ({eenheid})."
+            )
+        voorwaarden = []
+        if enkel_licht_telt_niet:
+            voorwaarden.append("minstens 1 ongeval met zwaargewonden of doden")
+        if min_licht:
+            voorwaarden.append(f"min. {min_licht} met lichtgewonden")
+        ernst_delen = ([f"min. {min_zwaar} met zwaargewonden"] if min_zwaar else []) + (
+            [f"min. {min_doden} met doden"] if min_doden else []
+        )
+        if ernst_delen:
+            voorwaarden.append(f" {ernst_combi} ".join(ernst_delen))
+        if voorwaarden:
+            st.caption(f"Extra voorwaarden ({eenheid}): " + "; ".join(voorwaarden) + ".")
+        st.caption(
+            "De filters gewest, provincie en gemeente bepalen welke zwarte punten op de kaart en in de lijst staan; een "
+            "punt hoort bij het gebied waar de meeste van zijn ongevallen liggen. De tabel bovenaan telt altijd heel België."
+        )
 
 # ---------- Tab Data View, deel 2: foute coördinaten (onderaan hetzelfde tabblad) ----------
 with tab_data:
