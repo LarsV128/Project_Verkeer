@@ -51,7 +51,7 @@ kunnen worden uitgelegd.
 - **Afstand:** standaard 50 m (instelbaar 25-200 m), ongeveer één kruispunt.
 - **Twee methodes:** *Puntenscore* (standaard, vanaf 15 punten en minstens 3 ongevallen) en *Aantal ongevallen* (standaard minstens 3).
 - Resultaat standaard (50 m, heel België): 2022-2024 → 215 zwarte punten; 2021-2023 → 180.
-- **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen; score en aantallen staan in de tabel.
+- **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen. De **kleur toont de score** met een vaste schaal die overal hetzelfde is (blauw < 20, lichtblauw 20-24, geel 25-29, oranje 30-49, rood ≥ 50), met een legende onder elke kaart.
 - **Extra voorwaarden (optioneel, in het tandwiel):** een plek met enkel lichtgewonden telt niet mee; minimum voor licht, zwaar en doden; minimum zwaar en doden combineren met *en* of *of*.
 - **Twee weergaven:** *Vaste locaties, aantallen per jaar* (voor evolutie van dezelfde plek) en *Elk jaar apart*.
 
@@ -65,6 +65,7 @@ kunnen worden uitgelegd.
 ## Open punten
 - [x] De **officiële definitie van "zwart punt"** opzoeken (2026-11-09: Vlaamse puntentelling overgenomen, zie boven).
 - [ ] Een **afstand of segmentdefinitie** van Vlaanderen zoeken (de pagina noemt er geen) en **slachtoffers per ongeval** zoeken (andere Statbel-dataset?) zodat we per slachtoffer kunnen tellen (en eventueel de factor 1,7 kunnen toepassen).
+- [ ] De app **opruimen**: we gebruiken enkel de puntenscore; de methode "Aantal ongevallen" en andere opties staan er om fouten te vinden en kunnen weg.
 - [ ] De drempel **15 punten** komt uit de telling per slachtoffer; onderzoeken wat een passende drempel is bij onze telling per ongeval.
 - [ ] Het verschil tussen "Met doden" (code 1) en "Dodelijk gewonden" (code 2) navragen; nu samengevoegd.
 - [ ] **Eerlijk vergelijken over de jaren:** rekening houden met de verschillende dekking van de coördinaten.

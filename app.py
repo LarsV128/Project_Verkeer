@@ -294,17 +294,19 @@ METHODE_AANTAL = "Aantal ongevallen"
 METHODE_SCORE = "Puntenscore"
 
 
-def bouw_spots(punten, cluster, gewicht):
-    """Telt per cluster de ongevallen per type, de score en de gemiddelde plaats.
+def bouw_spots(punten, cluster):
+    """Telt per cluster de ongevallen per type, de puntenscore en de gemiddelde plaats.
 
+    De score is altijd de puntenscore (5 / 3 / 1 per ongeval), ook als de zwarte punten op aantal gezocht zijn,
+    zodat de kleur op de kaart altijd hetzelfde betekent.
     Geeft (ongevallen die in een cluster zitten, tabel met één rij per cluster)."""
-    leden = punten.assign(cluster=cluster, gewicht=gewicht)
+    leden = punten.assign(cluster=cluster, punt=punten_per_ongeval(punten))
     leden = leden[leden["cluster"] >= 0]
     code = leden["class_accident_code"].astype(int)
     leden = leden.assign(licht=code.isin(LICHT), zwaar=code.isin(ZWAAR), doden=code.isin(DODEN))
     spots = leden.groupby("cluster").agg(
         totaal=("cluster", "size"),
-        score=("gewicht", "sum"),
+        score=("punt", "sum"),
         licht=("licht", "sum"),
         zwaar=("zwaar", "sum"),
         doden=("doden", "sum"),
@@ -318,12 +320,42 @@ def bouw_spots(punten, cluster, gewicht):
 
 CIRKEL_STRAAL = 60  # meter; elk zwart punt is even groot, de cirkel duidt enkel de locatie aan
 
+# Vaste kleurschaal voor de score van een zwart punt, overal dezelfde (elk tabblad, weergave, periode en gebied):
+# (ondergrens, kleur, label). De grenzen volgen de verdeling van de scores: de meeste punten liggen tussen 15 en 25.
+KLEURKLASSEN = [
+    (0, "#2c7bb6", "minder dan 20"),
+    (20, "#abd9e9", "20 tot 24"),
+    (25, "#ffdf6e", "25 tot 29"),
+    (30, "#fc8d59", "30 tot 49"),
+    (50, "#d73027", "50 of meer"),
+]
+
+
+def score_kleur(score):
+    """Hexkleur van een score volgens de vaste klassen in KLEURKLASSEN."""
+    kleur = KLEURKLASSEN[0][1]
+    for ondergrens, k, _ in KLEURKLASSEN:
+        if score >= ondergrens:
+            kleur = k
+    return kleur
+
+
+def toon_legende():
+    """Legende onder de kaart: dezelfde klassen en kleuren als de cirkels."""
+    delen = [f"<span style='color:{k}; font-size:1.2em'>●</span> {label}" for _, k, label in KLEURKLASSEN]
+    st.markdown(
+        "<small><b>Score van het zwarte punt (punten):</b> " + " &nbsp;·&nbsp; ".join(delen) + "</small>",
+        unsafe_allow_html=True,
+    )
+
 
 def toon_kaart_en_tabel(spots, kolommen, dek):
     """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied.
 
-    De score of het aantal staat in de tabel; de cirkels zijn bewust allemaal even groot."""
-    st.map(spots[["lat", "lon"]], latitude="lat", longitude="lon", size=CIRKEL_STRAAL)
+    Alle cirkels zijn even groot (ze duiden de locatie aan); de kleur toont de score volgens vaste klassen."""
+    kaart = spots[["lat", "lon"]].assign(kleur=spots["score"].map(score_kleur))
+    st.map(kaart, latitude="lat", longitude="lon", color="kleur", size=CIRKEL_STRAAL)
+    toon_legende()
     toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
     st.dataframe(spots.reset_index(drop=True)[kolommen], width="stretch", hide_index=True)
     toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
@@ -447,7 +479,7 @@ with tab_punten:
             ok = ok & (np.logical_or.reduce(ernst) if ernst_combi == "of" else np.logical_and.reduce(ernst))
         return spots[ok]
 
-    basis_kolommen = ["gemeente"] + (["score"] if score_modus else []) + ["totaal", "licht", "zwaar", "doden"]
+    basis_kolommen = ["gemeente", "score", "totaal", "licht", "zwaar", "doden"]
 
     plaats2 = plaats_label(f2)
     toon_type_overzicht(sel, plaats2)
@@ -463,7 +495,7 @@ with tab_punten:
     elif not per_jaar_modus:
         w = gewichten(punten)
         cluster = zoek_clusters(punten["x_lambert72"].to_numpy(), punten["y_lambert72"].to_numpy(), w, straal, drempel)
-        leden, spots = bouw_spots(punten, cluster, w)
+        leden, spots = bouw_spots(punten, cluster)
         per_jaar = (
             leden.groupby(["cluster", "jaar"]).size().unstack(fill_value=0).reindex(columns=alle_jaren, fill_value=0)
         )
@@ -483,8 +515,7 @@ with tab_punten:
             top = spots.head(200)
             namen = {}
             for n, (c, r) in enumerate(top.iterrows(), 1):
-                extra = f", score {r.score:g}" if score_modus else ""
-                namen[c] = f"{n}. {r.gemeente} – {r.totaal} ongevallen{extra}"
+                namen[c] = f"{n}. {r.gemeente} – {r.totaal} ongevallen, score {r.score:g}"
             gekozen = st.selectbox(
                 f"Kies een zwart punt (top 200 op {maat})", list(namen), format_func=namen.get
             )
@@ -505,7 +536,7 @@ with tab_punten:
                 continue
             w = gewichten(pj)
             cluster = zoek_clusters(pj["x_lambert72"].to_numpy(), pj["y_lambert72"].to_numpy(), w, straal, drempel)
-            _, spots_jaar = bouw_spots(pj, cluster, w)
+            _, spots_jaar = bouw_spots(pj, cluster)
             delen.append(voldoet(spots_jaar).assign(jaar=jaar))
         spots = pd.concat(delen, ignore_index=True) if delen else pd.DataFrame()
 
