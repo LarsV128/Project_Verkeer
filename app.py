@@ -827,6 +827,40 @@ with tab_evolutie:
         "provincie waar de meeste van zijn ongevallen liggen."
     )
 
+@st.cache_data
+def bronrijen(rijen, gewijzigd):
+    """Hele rijen (alle kolommen, als tekst) uit de ruwe data, op rijnummer. Het bestand wordt enkel gelezen.
+
+    Rij i van de opgeschoonde data is rij i van de bron (zelfde volgorde); regel 0 van het bestand is de kopregel."""
+    gezocht = set(rijen)
+    return pd.read_csv(
+        clean_data.RAW, sep="|", encoding="utf-8-sig", dtype=str, skiprows=lambda r: r != 0 and (r - 1) not in gezocht
+    )
+
+
+def grensoverlap(leden):
+    """Telt per niveau hoeveel zwarte punten ongevallen uit meer dan één gebied bevatten.
+
+    `leden` = de ongevallen in zwarte punten (kolom `cluster`). Geeft een tabel met één rij per niveau."""
+    rijen = []
+    for niveau in ("gewest", "provincie", "gemeente"):
+        per_gebied = leden.groupby(["cluster", niveau], observed=True).size()
+        meeste = per_gebied.groupby("cluster").transform("max")
+        aantal_gebieden = per_gebied.groupby("cluster").size()
+        gelijk = (per_gebied == meeste).groupby("cluster").sum() > 1  # gelijke stand: de keuze van de app is toeval
+        rijen.append(
+            {
+                "niveau": niveau,
+                "zwarte punten": len(aantal_gebieden),
+                "met ongevallen uit meer dan 1 gebied": int((aantal_gebieden > 1).sum()),
+                "waarvan gelijke stand": int(gelijk.sum()),
+            }
+        )
+    tabel = pd.DataFrame(rijen)
+    tabel["% overlap"] = (tabel["met ongevallen uit meer dan 1 gebied"] / tabel["zwarte punten"] * 100).round(1)
+    return tabel
+
+
 # ---------- Tab Data View, deel 2: foute coördinaten (onderaan hetzelfde tabblad) ----------
 with tab_data:
     st.divider()
@@ -864,6 +898,16 @@ with tab_data:
         | {c: st.column_config.NumberColumn(format="%.5e") for c in ("x_bron", "y_bron")},
     )
     toon_dekking(len(fout), len(fout), "België", "Alle ongevallen met een onmogelijke coördinaat in de bron staan in deze tabel.")
+
+    st.subheader("Hele bronrijen van deze ongevallen")
+    st.caption(
+        "Alle kolommen van de rijen in `data/raw/OPENDATA_MAP_2017-2024.txt`, zoals ze in de bron staan (onaangeroerd, enkel "
+        "gelezen). Zo kan je de coördinaten en de gemeente naast de rest van het ongeval leggen."
+    )
+    bron = bronrijen(tuple(int(i) for i in fout.index), clean_data.RAW.stat().st_mtime)
+    bron.index = [f"{g} (rij {i})" for g, i in zip(fout["gemeente"], fout.index)]
+    st.dataframe(bron.T, width="stretch")
+    toon_dekking(len(bron), len(fout), "België", "Alle ongevallen uit de tabel hierboven staan ook hier, met alle bronkolommen.")
 
     st.subheader("Waar staan ze nu?")
     st.markdown(
@@ -930,6 +974,31 @@ with tab_data:
                 st.info("Aannemelijk, maar minder zeker: het punt ligt aan de rand van de gemeente, waar weinig ongevallen zijn.")
             else:
                 st.success("Sterk: het punt ligt midden tussen de andere ongevallen van deze gemeente.")
+
+    st.divider()
+    st.header("Zwarte punten op een grens")
+    st.markdown(
+        "Een zwart punt voegt ongevallen binnen de gekozen afstand samen, ook over een grens heen. Het punt hoort dan bij "
+        "het gebied waar de meeste van zijn ongevallen liggen. Hieronder staat hoeveel punten ongevallen uit meer dan één "
+        "gewest, provincie of gemeente bevatten. Bij *gelijke stand* is de keuze van de app toeval."
+    )
+    cluster_nl = zoek_clusters(
+        punten_nl["x_lambert72"].to_numpy(), punten_nl["y_lambert72"].to_numpy(), gewichten(punten_nl), straal, drempel
+    )
+    leden_nl, spots_alle = bouw_spots(punten_nl, cluster_nl)
+    leden_nl = leden_nl[leden_nl["cluster"].isin(voldoet(spots_alle).index)]
+    st.dataframe(grensoverlap(leden_nl), width="stretch", hide_index=True)
+    st.caption(
+        f"Instellingen zoals in het tandwiel van het tabblad Kaart: periode {jaren[0]}-{jaren[1]}, één keer zoeken over "
+        f"die jaren (vaste locaties), afstand {straal} m, methode {methode}, zwart punt vanaf {score_drempel} punten en "
+        f"minstens {min_totaal} ongevallen."
+    )
+    toon_dekking(
+        len(punten_nl),
+        int(df["jaar"].between(*jaren).sum()),
+        "België",
+        "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.",
+    )
 
 # ---------- Bron (onder alle tabbladen) ----------
 st.divider()

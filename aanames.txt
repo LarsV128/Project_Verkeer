@@ -70,6 +70,9 @@ Open vraag: wat is het verschil tussen code 1 en code 2? (navragen in de cursus 
   Knokke-Heist is sterk (71 ongevallen binnen 500 m); Herentals ligt aan de zuidrand van de gemeente met slechts
   2 ongevallen binnen 500 m en blijft het zwakste punt.
 - De originele waarden staan in de kolommen x_bron en y_bron. Onderaan het tabblad "Data View" (onderdeel "Foute coördinaten") staan ze met kaart.
+- Daar staan ook de hele bronrijen (alle 45 kolommen, als tekst, rechtstreeks gelezen uit data/raw; functie bronrijen in
+  app.py) zodat je het herstel kan controleren. Rijnummer = regel in het bronbestand min 2 (kopregel en nummering vanaf 0):
+  Knokke-Heist rij 194899, Herentals rij 216738.
 
 3.4 Dekking verschilt per jaar (belangrijk voor de evolutie)
 - Bruikbare coördinaten: 2017 84,7% - 2018 83,2% - 2019 82,8% - 2020 81,0% - 2021 81,7%
@@ -137,6 +140,14 @@ Definitie in dit project:
   met een cirkel van 50 m diameter miste het raster 13% (drempel 5) tot 17% (drempel 10) van de ongevallen die de
   cirkel wel vindt.
 - De plaats van een zwart punt op de kaart is het gemiddelde van de coördinaten van zijn ongevallen.
+- Grens: een zwart punt kan ongevallen uit meer dan één gewest, provincie of gemeente bevatten. Het punt telt mee bij het
+  gebied waar de meeste van zijn ongevallen liggen; bij gelijke stand wint het gebied dat in de telling (value_counts) eerst
+  komt, dus toeval.
+  Onderaan het tabblad "Data View" (onderdeel "Zwarte punten op een grens") staat hoeveel punten dat zijn, per niveau
+  (functie grensoverlap in app.py). Die tabel volgt de instellingen en de periode van het tabblad "Kaart" en zoekt altijd
+  één keer over de hele periode (vaste locaties), ook als de weergave "Elk jaar apart" staat.
+  Uitkomst met de standaardinstellingen (2022-2024, 50 m, score >= 15 en >= 3 ongevallen): 215 zwarte punten; gewest 0
+  en provincie 0 met ongevallen uit meer dan 1 gebied; gemeente 22 (10,2 %), waarvan 1 met gelijke stand.
 
 5.2 Instellingen (tabblad "Kaart")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).

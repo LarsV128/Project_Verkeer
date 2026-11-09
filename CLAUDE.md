@@ -3,6 +3,8 @@
 ## Werkwijze
 - We werken samen: **stel eerst vragen en wacht op antwoord voor je iets doet** (bestanden maken of wijzigen, commando's uitvoeren, app starten). Alleen lezen en uitleggen mag zonder te vragen.
 - Bied bij een nieuwe taak kort een voorstel aan (wat, waarom, welke keuzes) en laat de gebruiker kiezen.
+- **Commits:** maak nooit zelf een commit. Vraag altijd eerst of er gecommit mag worden en stel het commit-bericht voor. Houd dat bericht kort (één regel) en wacht op akkoord of aanpassing.
+- Houd antwoorden kort: geen lange uitleg of opsommingen als de gebruiker er niet om vraagt.
 
 ## Data-afspraken
 - `data/raw/` bevat de originele data (OPENDATA_MAP_2017-2024, VAR_LIST_ACC_OPENDATA_MAP). **Wijzig, hernoem of verwijder nooit een bestand in `data/raw/`.** Een hook (`.claude/hooks/protect_raw.py`) blokkeert dit. De inhoud staat niet in git (te groot); enkel de lege map via `.gitkeep`.
