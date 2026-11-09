@@ -37,16 +37,19 @@ kunnen worden uitgelegd.
 - **Dekking verschilt per jaar:** 81-85% bruikbare coördinaten t/m 2021, 94-97% vanaf 2022. Een stijging in 2022-2024
   is dus deels een meeteffect.
 
-### Puntenscore
-- Elk ongeval krijgt punten: licht 1 · zwaar 3 · doden 5 (instelbaar met het tandwiel ⚙️).
-- Gebruikt voor de methode "Puntenscore" bij zwarte punten en voor de ranglijst van gemeenten.
+### Puntenscore (Vlaamse telling, sinds 2026-11-09)
+- Bron: [Vlaanderen, gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten). Volledige samenvatting in `aanames.txt` onderdeel 4.
+- Elk ongeval krijgt punten: licht 1 · zwaar 3 · doden 5, **× 1,7** als een fietser, bromfietser of voetganger betrokken is (instelbaar met het tandwiel ⚙️).
+- **Afwijking van Vlaanderen:** zij tellen per *slachtoffer*; onze bron heeft enkel het zwaarste type per *ongeval*. Onze scores liggen dus te laag, en de factor 1,7 is een benadering (betrokken, niet noodzakelijk slachtoffer).
+- Gebruikt voor de methode "Puntenscore" (standaard) bij zwarte punten en voor de ranglijst van gemeenten.
 
-### Zwarte punten (voorlopige definitie)
-- Een zwart punt is een plek waar **binnen een gekozen afstand genoeg ongevallen** gebeurden.
+### Zwarte punten
+- Een zwart punt is een plek waar **binnen een gekozen afstand genoeg (ernstige) ongevallen** gebeurden: standaard **score ≥ 15 én ≥ 3 ongevallen in een periode van 3 jaar** (Vlaamse regel). In het tabblad kies je die periode met pijltjes (2017-2019 … 2022-2024).
 - **Buren tellen in plaats van een raster:** rastercellen snijden clusters op de celrand door en missen 13-17% van de ongevallen die een cirkel wel vindt.
 - Werkwijze: het ongeval met de hoogste som vormt een cluster met zijn buren, die worden weggenomen, en dat herhaalt zich. Zo overlappen punten niet.
 - **Afstand:** standaard 50 m (instelbaar 25-200 m), ongeveer één kruispunt.
-- **Twee methodes:** *Aantal ongevallen* (standaard minstens 5 totaal of 3 per jaar) en *Puntenscore* (standaard vanaf 7 punten).
+- **Twee methodes:** *Puntenscore* (standaard, vanaf 15 punten en minstens 3 ongevallen) en *Aantal ongevallen* (standaard minstens 3).
+- Resultaat standaard (50 m, heel België): 2022-2024 → 529 zwarte punten; 2021-2023 → 487.
 - **Extra voorwaarden (optioneel, in het tandwiel):** een plek met enkel lichtgewonden telt niet mee; minimum voor licht, zwaar en doden; minimum zwaar en doden combineren met *en* of *of*.
 - **Twee weergaven:** *Vaste locaties, aantallen per jaar* (voor evolutie van dezelfde plek) en *Elk jaar apart*.
 
@@ -57,7 +60,8 @@ kunnen worden uitgelegd.
 - **Overzicht** bevat ook een ranglijst van gemeenten op puntenscore, genummerd over heel België: bij een gewest of provincie alle gemeenten, bij een gemeente de top 5, de onderste 5 en 5 erboven en eronder.
 
 ## Open punten
-- [ ] De **officiële definitie van "zwart punt"** opzoeken en onze definitie daarop afstemmen.
+- [x] De **officiële definitie van "zwart punt"** opzoeken (2026-11-09: Vlaamse puntentelling overgenomen, zie boven).
+- [ ] Een **afstand of segmentdefinitie** van Vlaanderen zoeken (de pagina noemt er geen) en **slachtoffers per ongeval** zoeken (andere Statbel-dataset?) zodat we per slachtoffer kunnen tellen.
 - [ ] Het verschil tussen "Met doden" (code 1) en "Dodelijk gewonden" (code 2) navragen; nu samengevoegd.
 - [ ] **Eerlijk vergelijken over de jaren:** rekening houden met de verschillende dekking van de coördinaten.
 - [x] De hook `protect_raw.py` verfijnen (2026-11-09): lezen uit `data/raw/` mag nu (`open(pad)`, `open(pad, "r")`, `shutil.copy` met raw als bron); schrijven, verwijderen, verplaatsen en kopiëren *naar* raw blijft geblokkeerd, ook via `Path(...).unlink()`.

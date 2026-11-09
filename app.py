@@ -42,6 +42,7 @@ def zoek_clusters(x, y, gewicht, straal, drempel):
     weg = np.zeros(len(xy), dtype=bool)
     cluster = np.full(len(xy), -1)
 
+    drempel -= 1e-9  # gewichten als 1,7 of 5,1 geven afrondingsfoutjes: 15 mag niet als 14,999999999 tellen
     wachtrij = [(-t, i) for i, t in enumerate(tel) if t >= drempel]
     heapq.heapify(wachtrij)
     nummer = 0
@@ -87,21 +88,37 @@ JAAR_MIN, JAAR_MAX = int(df["jaar"].min()), int(df["jaar"].max())
 
 
 def punten_instellingen():
-    """Punten per type, ingesteld via het tandwiel in het tabblad Zwarte punten (standaard 1 / 3 / 5)."""
+    """Punten per type, ingesteld via het tandwiel in het tabblad Zwarte punten.
+
+    Standaard de Vlaamse puntentelling voor gevaarlijke punten: 1 / 3 / 5, maal 1,7 als een voetganger, fietser of
+    bromfietser bij het ongeval betrokken is."""
     s = st.session_state
-    return SimpleNamespace(licht=s.get("p_licht", 1), zwaar=s.get("p_zwaar", 3), doden=s.get("p_doden", 5))
+    return SimpleNamespace(
+        licht=s.get("p_licht", 1), zwaar=s.get("p_zwaar", 3), doden=s.get("p_doden", 5), kwetsbaar=s.get("p_kwetsbaar", 1.7)
+    )
 
 
 def punten_per_ongeval(p):
-    """Score van elk ongeval: de punten van zijn type."""
+    """Score van elk ongeval: de punten van zijn type, verhoogd met de factor bij kwetsbare weggebruikers."""
     inst = punten_instellingen()
     code = p["class_accident_code"].astype(int)
-    return np.select([code.isin(DODEN), code.isin(ZWAAR)], [inst.doden, inst.zwaar], default=inst.licht).astype(float)
+    basis = np.select([code.isin(DODEN), code.isin(ZWAAR)], [inst.doden, inst.zwaar], default=inst.licht).astype(float)
+    return basis * np.where(p["kwetsbaar"].to_numpy(), inst.kwetsbaar, 1.0)
 
 
-def toon_filters(prefix):
+PERIODE_JAREN = 3  # Vlaanderen rekent gevaarlijke punten op 3 jaar ongevallendata
+
+
+def schuif_periode(key, stap):
+    """Knop-actie: de periode van 3 jaar één jaar opschuiven (binnen de jaren die we hebben)."""
+    st.session_state[key] = min(max(st.session_state[key] + stap, JAAR_MIN), JAAR_MAX - PERIODE_JAREN + 1)
+
+
+def toon_filters(prefix, periode_pijltjes=False):
     """Filters bovenaan een tabblad: één gewest, één provincie en/of één gemeente, jaren en types.
 
+    Met `periode_pijltjes` kies je geen vrije jaren maar een periode van 3 jaar (2017-2019, 2018-2020, ...) die je
+    met pijltjes opschuift; standaard de laatste 3 jaar.
     Geeft een object met de gekozen waarden en `sel`, de ongevallen die aan alles voldoen."""
     k1, k2, k3, k4 = st.columns(4)
     gewest = k1.selectbox("Gewest", ["Alle gewesten"] + sorted(df["gewest"].unique()), key=f"{prefix}_gewest")
@@ -113,7 +130,21 @@ def toon_filters(prefix):
     gemeente = k3.selectbox("Gemeente", ["Alle gemeenten"] + sorted(sel["gemeente"].unique()), key=f"{prefix}_gem")
     sel = sel if gemeente == "Alle gemeenten" else sel[sel["gemeente"] == gemeente]
 
-    jaren = k4.slider("Jaren", JAAR_MIN, JAAR_MAX, (JAAR_MIN, JAAR_MAX), key=f"{prefix}_jaren")
+    if periode_pijltjes:
+        sleutel = f"{prefix}_start"
+        st.session_state.setdefault(sleutel, JAAR_MAX - PERIODE_JAREN + 1)
+        start = st.session_state[sleutel]
+        k4.markdown(f"Periode van {PERIODE_JAREN} jaar")
+        links, midden, rechts = k4.columns([1, 2, 1])
+        links.button("◀", key=f"{prefix}_vorige", on_click=schuif_periode, args=(sleutel, -1), disabled=start <= JAAR_MIN)
+        midden.markdown(f"**{start}-{start + PERIODE_JAREN - 1}**")
+        rechts.button(
+            "▶", key=f"{prefix}_volgende", on_click=schuif_periode, args=(sleutel, 1),
+            disabled=start >= JAAR_MAX - PERIODE_JAREN + 1,
+        )
+        jaren = (start, start + PERIODE_JAREN - 1)
+    else:
+        jaren = k4.slider("Jaren", JAAR_MIN, JAAR_MAX, (JAAR_MIN, JAAR_MAX), key=f"{prefix}_jaren")
     types = st.multiselect("Type ongeval (class_accident)", TYPES, default=TYPES, key=f"{prefix}_types")
 
     sel = sel[sel["jaar"].between(*jaren) & sel["class_accident"].isin(types)]
@@ -168,6 +199,7 @@ def gemeente_ranglijst(jaren, types):
         basis.groupby(["gemeente", "provincie", "gewest"], observed=True)
         .agg(score=("score", "sum"), totaal=("score", "size"), licht=("licht", "sum"), zwaar=("zwaar", "sum"), doden=("doden", "sum"))
         .reset_index()
+        .assign(score=lambda t: t["score"].round(1))
         .sort_values(["score", "totaal", "gemeente"], ascending=[False, False, True])
         .reset_index(drop=True)
     )
@@ -184,8 +216,8 @@ def toon_ranglijst(filt):
     inst = punten_instellingen()
     st.subheader("Gemeenten gerangschikt op puntenscore")
     st.caption(
-        f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden (instellen via ⚙️ in het tabblad "
-        f"Zwarte punten). Nummering over alle {len(g)} gemeenten in België; positie 1 heeft de hoogste score."
+        f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden, × {inst.kwetsbaar:g} als een "
+        f"voetganger, fietser of bromfietser betrokken is (instellen via ⚙️ in het tabblad Zwarte punten). Nummering over alle {len(g)} gemeenten in België; positie 1 heeft de hoogste score."
     )
 
     def toon(tabel, titel):
@@ -282,6 +314,7 @@ def bouw_spots(punten, cluster, gewicht):
         lon=("lon", "mean"),
         gemeente=("gemeente", lambda s: s.value_counts().index[0]),
     )
+    spots["score"] = spots["score"].round(1)
     return leden, spots
 
 
@@ -295,16 +328,19 @@ def toon_kaart_en_tabel(spots, kolommen, maat, dek):
 
 
 with tab_punten:
-    f2 = toon_filters("punten")
+    f2 = toon_filters("punten", periode_pijltjes=True)
     sel, jaren = f2.sel, f2.jaren
 
     st.markdown(
-        "Een **zwart punt** is hier een plek waar binnen de gekozen afstand genoeg ongevallen gebeurden. "
-        "*Voorlopige definitie; de officiële definitie zoeken we nog op.*"
+        "Een **zwart punt** is hier een plek waar binnen de gekozen afstand genoeg (ernstige) ongevallen gebeurden. "
+        "We volgen de puntentelling van Vlaanderen voor "
+        "[gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten): "
+        "3 jaar ongevallendata, een score van minstens 15 en minstens 3 ongevallen. "
+        "*Onze zoekmethode (afstand, geen overlap) blijft eigen werk; Vlaanderen noemt geen afstand.*"
     )
     r1, r2 = st.columns(2)
     modus = r1.radio("Weergave", [MODUS_VAST, MODUS_JAAR], horizontal=True)
-    methode = r2.radio("Wanneer is het een zwart punt?", [METHODE_AANTAL, METHODE_SCORE], horizontal=True)
+    methode = r2.radio("Wanneer is het een zwart punt?", [METHODE_AANTAL, METHODE_SCORE], index=1, horizontal=True)
     per_jaar_modus = modus == MODUS_JAAR
     score_modus = methode == METHODE_SCORE
     eenheid = "per jaar" if per_jaar_modus else "totaal"
@@ -325,11 +361,11 @@ with tab_punten:
     min_totaal = c2.number_input(
         f"Min. ongevallen ({eenheid})",
         min_value=2,
-        value=3 if per_jaar_modus else 5,
+        value=3,
         step=1,
         key="min_jaar" if per_jaar_modus else "min_vast",
-        disabled=score_modus,
-        help="Wordt gebruikt bij de methode 'Aantal ongevallen'.",
+        help="Bij 'Aantal ongevallen': de drempel zelf. Bij 'Puntenscore': een extra voorwaarde naast de score "
+        "(Vlaanderen: minstens 3 ongevallen).",
     )
 
     with c3.popover("⚙️ Instellingen: puntenscore en extra voorwaarden"):
@@ -341,7 +377,13 @@ with tab_punten:
         st.number_input("Punten per ongeval met lichtgewonden", min_value=0, value=1, step=1, key="p_licht")
         st.number_input("Punten per ongeval met zwaargewonden", min_value=0, value=3, step=1, key="p_zwaar")
         st.number_input("Punten per ongeval met doden (incl. dodelijk gewonden)", min_value=0, value=5, step=1, key="p_doden")
-        score_drempel = st.number_input(f"Zwart punt vanaf (punten, {eenheid})", min_value=1, value=7, step=1)
+        st.number_input(
+            "Factor als een voetganger, fietser of bromfietser betrokken is",
+            min_value=1.0, value=1.7, step=0.1, format="%.1f", key="p_kwetsbaar",
+            help="Vlaanderen: x 1,7 (8,5 / 5,1 / 1,7 punten). We weten niet of die persoon het slachtoffer was, "
+            "enkel dat hij of zij bij het ongeval betrokken was.",
+        )
+        score_drempel = st.number_input(f"Zwart punt vanaf (punten, {eenheid})", min_value=1, value=15, step=1)
 
         st.divider()
         st.markdown("**Extra voorwaarden** (voor beide methodes)")
@@ -365,8 +407,9 @@ with tab_punten:
     inst = punten_instellingen()
     if score_modus:
         st.caption(
-            f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden. "
-            f"Zwart punt vanaf **{score_drempel} punten** ({eenheid})."
+            f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden, × {inst.kwetsbaar:g} als een "
+            f"voetganger, fietser of bromfietser betrokken is. Zwart punt vanaf **{score_drempel} punten** en "
+            f"minstens **{min_totaal} ongevallen** ({eenheid})."
         )
     voorwaarden = []
     if enkel_licht_telt_niet:
@@ -391,6 +434,8 @@ with tab_punten:
     def voldoet(spots):
         """Past de extra voorwaarden toe op de gevonden zwarte punten."""
         ok = spots["licht"] >= min_licht
+        if score_modus:  # bij 'Aantal ongevallen' is dit minimum al de zoekdrempel zelf
+            ok = ok & (spots["totaal"] >= min_totaal)
         if enkel_licht_telt_niet:
             ok = ok & ((spots["zwaar"] + spots["doden"]) >= 1)
         ernst = []

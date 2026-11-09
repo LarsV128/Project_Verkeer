@@ -19,7 +19,7 @@ Bijgewerkt: 2026-11-09
 - Brussel heeft geen provincie in de bron. We vullen "Geen provincie (Brussel)" in en laten het voorvoegsel
   "Provincie " weg bij de andere provincies.
 - Alleen kolommen die de app nodig heeft bleven bewaard: jaar, maand, uur, nis, gewest, provincie, gemeente,
-  class_accident (+code) en de coördinaten. Weer, wegtype, weggebruikers enz. zitten nog niet in de clean-versie.
+  class_accident (+code), de coördinaten en de weggebruikers (weggebruiker1_code, weggebruiker2_code, kwetsbaar). Weer, wegtype, weggebruikers enz. zitten nog niet in de clean-versie.
 
 
 2. TYPES ONGEVAL (class_accident) EN GROEPEN
@@ -78,22 +78,50 @@ Open vraag: wat is het verschil tussen code 1 en code 2? (navragen in de cursus 
   Bij het vergelijken van jaren: werk met aandelen, of enkel met ongevallen die coördinaten hebben.
 
 
-4. PUNTENSCORE
---------------
+4. PUNTENSCORE (VLAAMSE TELLING)
+--------------------------------
+Bron: Vlaanderen, "Gevaarlijke punten" (opgezocht op 2026-11-09, door jou aangeleverd):
+      https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten
+Wat de pagina zegt (samengevat; de Vlaamse tekst staat hier uitgeschreven zodat ze niet verloren gaat):
+- "Gevaarlijke punten zijn locaties die objectief onveilig zijn en waar de afgelopen jaren meerdere (ernstige)
+  verkeersongevallen zijn gebeurd." Een locatie is een kruispunt of een kort wegsegment.
+- De score wordt berekend PER SLACHTOFFER: dodelijk gewond = gewicht 5, zwaargewond = 3, lichtgewond = 1.
+- Voetgangers, fietsers en bromfietsers: verhogingsfactor 1,7 (sinds 2019), dus 8,5 / 5,1 / 1,7 punten.
+- Periode: de laatste 3 beschikbare jaren ongevallendata (Statbel).
+- Een punt is gevaarlijk bij een prioriteitenscore van minstens 15 EN minstens 3 letselongevallen in die 3 jaar.
+- De pagina noemt geen afstand of straal.
+
+Wat wij overnemen en wat niet:
+- Gewichten 1 / 3 / 5 en de factor 1,7: overgenomen, instelbaar in de app (tandwiel).
+- Drempel 15 punten en minstens 3 ongevallen: standaard in de app (methode "Puntenscore").
+- Periode van 3 jaar: in het tabblad Zwarte punten kies je met pijltjes een periode van 3 jaar (2017-2019, 2018-2020,
+  ..., 2022-2024); standaard de laatste. (Je noemde "2017-2020"; dat zijn 4 jaar. Ik koos 3 jaar zoals Vlaanderen.)
+- AFWIJKING 1: wij tellen per ONGEVAL, niet per slachtoffer. De bron heeft geen aantal slachtoffers per ongeval, enkel
+  het zwaarste type (class_accident). Een ongeval met 3 lichtgewonden telt dus 1 punt, niet 3. Onze scores liggen
+  daardoor te laag in vergelijking met Vlaanderen.
+- AFWIJKING 2: de factor 1,7 geldt bij ons als een fietser, bromfietser of voetganger bij het ongeval BETROKKEN is
+  (kolommen weggebruiker1_code en weggebruiker2_code: 03 fiets, 06 bromfiets, 08 voetganger; kolom kwetsbaar in
+  clean_data.py). Vlaanderen past de factor toe op het slachtoffer. Dat is dus een benadering. Het gaat om 40,8% van de
+  ongevallen (118.006 van 289.532). Motorfietsen krijgen geen verhoging (staat zo niet in de Vlaamse tekst).
+- De 1,7 telt ook voor de ranglijst van gemeenten (6). Scores zijn dus kommagetallen (bv. 8,5 of 5,1), afgerond op 1 decimaal.
+
+Praktisch:
 - Elk ongeval krijgt punten volgens zijn type:
-      licht  = 1 punt      zwaar = 3 punten      doden = 5 punten
+      licht  = 1 punt      zwaar = 3 punten      doden = 5 punten      (x 1,7 bij een kwetsbare weggebruiker)
 - Score van een plek of gemeente = som van de punten van de ongevallen.
-      Voorbeeld Charleroi: 93 licht x 1 + 6 zwaar x 3 + 1 dode x 5 = 116 punten.
+      Voorbeeld: 2 ongevallen met lichtgewonden waarvan 1 met een fietser = 1 + 1,7 = 2,7 punten.
 - Aanpassen in de app: tabblad "Zwarte punten", knop "Instellingen: puntenscore en extra voorwaarden" (tandwiel). De
   punten per type gelden ook voor de ranglijst van gemeenten in het tabblad "Overzicht".
 
 
-5. ZWART PUNT (VOORLOPIGE DEFINITIE)
-------------------------------------
-De officiele definitie van "zwart punt" moet nog opgezocht worden en kan deze definitie vervangen.
+5. ZWART PUNT (DEFINITIE)
+-------------------------
+Sinds 2026-11-09 volgen we de Vlaamse puntentelling voor "gevaarlijke punten" (zie 4), met onze eigen zoekmethode
+voor de plek (Vlaanderen noemt geen afstand). De definitie blijft dus deels eigen werk.
 
 Definitie in dit project:
-  Een zwart punt is een plek waar, binnen een gekozen afstand, voldoende ongevallen gebeurden.
+  Een zwart punt is een plek waar, binnen een gekozen afstand, voldoende (ernstige) ongevallen gebeurden:
+  standaard een score van minstens 15 punten en minstens 3 ongevallen in een periode van 3 jaar.
 
 5.1 Hoe een zwart punt wordt gevonden ("buren tellen", functie zoek_clusters in app.py)
   1. Voor elk ongeval tellen we het gewicht van alle ongevallen binnen de gekozen afstand (het ongeval zelf inbegrepen).
@@ -108,9 +136,12 @@ Definitie in dit project:
 5.2 Instellingen (tabblad "Zwarte punten")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
 - Methode "Aantal ongevallen": gewicht per ongeval = 1.
-      Minimum aantal ongevallen: standaard 5 (alle jaren samen) of 3 (per jaar). Minimum 2.
-- Methode "Puntenscore": gewicht per ongeval = zijn punten (zie 4).
-      Zwart punt vanaf: standaard 7 punten. Staat in het tandwiel, naast de punten per type.
+      Minimum aantal ongevallen: standaard 3 (was 5 voor alle jaren samen). Minimum 2.
+- Methode "Puntenscore" (STANDAARD sinds 2026-11-09): gewicht per ongeval = zijn punten (zie 4).
+      Zwart punt vanaf: standaard 15 punten (was 7). Staat in het tandwiel, naast de punten per type en de factor 1,7.
+      Daarnaast geldt "Min. ongevallen" (standaard 3) als extra voorwaarde, zoals bij Vlaanderen. Die voorwaarde wordt,
+      net als de extra voorwaarden hieronder, toegepast NADAT de zwarte punten gevonden zijn.
+- Afrondingsmarge: bij de score telt 14,999999999 als 15 (kommagetallen als 1,7 en 5,1 geven afrondingsfoutjes).
 - Extra voorwaarden (optioneel, in het tandwiel, gelden voor beide methodes). Ze worden toegepast NADAT de zwarte
   punten gevonden zijn; een plek die afvalt, wordt dus niet opnieuw opgesplitst.
       * "Een plek met enkel lichtgewonden telt niet mee" (vinkje, standaard uit): een zwart punt heeft dan minstens
@@ -120,15 +151,17 @@ Definitie in dit project:
             en  = beide minimums moeten gehaald worden
             of  = een van beide volstaat
         Een minimum van 0 telt niet mee in die keuze. "of" met minimum 1 voor beide is hetzelfde als het vinkje.
-  Voorbeeld (afstand 50 m, minstens 5 ongevallen totaal, alle jaren): 10.500 zwarte punten zonder extra voorwaarden;
+  Voorbeeld met de OUDE instelling (methode Aantal, afstand 50 m, minstens 5 ongevallen totaal, alle jaren): 10.500 zwarte punten zonder extra voorwaarden;
   4.885 met "enkel licht telt niet mee"; 300 als zowel minstens 1 zwaargewonde ALS minstens 1 dode vereist is.
 - Weergave "Vaste locaties, aantallen per jaar": één keer zoeken over alle gekozen jaren. Elke plek blijft dezelfde
   locatie en krijgt een kolom per jaar, plus een grafiek van de evolutie van één plek (top 200).
 - Weergave "Elk jaar apart": per jaar een eigen zoektocht. Een plek kan in het ene jaar een zwart punt zijn en in het
   andere niet; punten van verschillende jaren liggen niet exact op dezelfde plek.
 - Kaart: de grootte van een bol is 15 meter x (score of aantal).
-- Gevolg van 1 / 3 / 5 met drempel 7: één dode plus één zwaargewonde (5+3=8) is een zwart punt; één dode plus
-  één lichtgewonde (5+1=6) nog niet; zeven lichtgewonden wel.
+- Resultaat met de nieuwe standaard (score 15, min 3 ongevallen, 50 m, weergave "Vaste locaties", heel België):
+      2022-2024: 529 zwarte punten met 6.607 ongevallen      2021-2023: 487 zwarte punten met 5.963 ongevallen
+- (Oude instelling 1 / 3 / 5 met drempel 7 zonder factor: één dode plus één zwaargewonde was een zwart punt.
+  Nu heb je daarvoor minstens 15 punten en minstens 3 ongevallen nodig.)
 
 
 6. RANGLIJST VAN GEMEENTEN (tabblad "Overzicht")
@@ -146,6 +179,8 @@ Definitie in dit project:
 - Elk tabblad heeft eigen filters bovenaan: één gewest, één provincie, één gemeente, jaren en types.
   Een wijziging in een tabblad verandert niets in de andere tabbladen.
 - Kies je een ander gewest, dan springen provincie en gemeente terug naar "Alle".
+- Tabblad "Zwarte punten": geen jaren-slider maar pijltjes ◀ ▶ om een periode van 3 jaar te kiezen (2017-2019 tot
+  2022-2024, standaard de laatste). De andere tabbladen hebben nog de slider.
 - Elk tabblad toont een overzicht per type ongeval voor de gekozen selectie.
 - Er is geen zijbalk meer. De instellingen voor puntenscore en extra voorwaarden staan in het tandwiel in het tabblad
   "Zwarte punten".
@@ -169,7 +204,9 @@ Definitie in dit project:
 
 8. NOG OPEN
 -----------
-- Officiele definitie van "zwart punt" opzoeken.
+- Officiele definitie van "zwart punt": de Vlaamse telling is overgenomen (zie 4). Nog open: een afstand/straal of
+  segmentdefinitie van Vlaanderen zoeken, en slachtoffers per ongeval (een andere Statbel-dataset?) zodat we per
+  slachtoffer kunnen tellen.
 - Verschil tussen code 1 (Met doden) en code 2 (Dodelijk gewonden) navragen.
 - Eerlijk vergelijken over jaren, rekening houdend met de verschillende dekking van de coördinaten (3.4).
 - Eventueel een correctie voor inwonersaantal bij de ranglijst van gemeenten.

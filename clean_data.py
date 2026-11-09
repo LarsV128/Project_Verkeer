@@ -29,7 +29,12 @@ KOLOMMEN = {
     "TX_CLASS_ACCIDENTS_NL": "class_accident",
     "MS_X_COORD": "x_lambert72",
     "MS_Y_COORD": "y_lambert72",
+    "CD_ROAD_USR_TYPE1": "weggebruiker1_code",
+    "CD_ROAD_USR_TYPE2": "weggebruiker2_code",
 }
+
+# Codes van kwetsbare weggebruikers (Vlaamse puntentelling voor gevaarlijke punten, factor 1,7)
+KWETSBAAR = ["03", "06", "08"]  # 03 fiets, 06 bromfiets, 08 voetganger
 
 
 def herstel(waarde, bereik, doel):
@@ -53,6 +58,10 @@ def main():
     # coördinaten hebben een decimale komma: '149732,99' -> 149732.99
     for kol in ("x_lambert72", "y_lambert72"):
         df[kol] = pd.to_numeric(df[kol].str.replace(",", ".", regex=False), errors="coerce")
+
+    # Kwetsbaar: een fietser, bromfietser of voetganger is bij het ongeval betrokken (we weten niet of die het
+    # slachtoffer was: de bron heeft geen slachtoffers per ongeval, enkel de betrokken weggebruikers).
+    df["kwetsbaar"] = df["weggebruiker1_code"].isin(KWETSBAAR) | df["weggebruiker2_code"].isin(KWETSBAAR)
 
     # Coördinaten: 'ontbreekt' (leeg), 'onmogelijk' (buiten België, bv. 1.8e16) of 'ok'.
     ontbreekt = df["x_lambert72"].isna() | df["y_lambert72"].isna()
