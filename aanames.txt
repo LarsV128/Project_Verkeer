@@ -199,7 +199,7 @@ Definitie in dit project:
 
 7. FILTERS EN WEERGAVE
 ----------------------
-- De app heet "Zwarte Punten" en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (Het tabblad
+- De app heet "Zwart Punten (Officieus)" (voorheen "Zwarte Punten") en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (Het tabblad
   "Kaart" heette eerst "Zwarte punten"; het tabblad "Overzicht" heet nu "Data View"; het tabblad "Foute coördinaten"
   is onderaan "Data View" gezet.)
 - TABBLAD "EVOLUTIE" (sinds 2026-11-09): 3 lijngrafieken met het aantal zwarte punten per periode van 3 jaar. De punten
@@ -212,6 +212,13 @@ Definitie in dit project:
     eindpunt heeft (de stukken bedekken elkaar). Lijnen die elkaar enkel kruisen of raken blijven doorlopend. De regel geldt
     per lijnstuk: een reeks kan dus deels doorlopend en deels gestippeld zijn. Vallen k reeksen samen, dan staan hun
     streepjes om en om (elke reeks een eigen plek in een patroon van k streepjes), zodat je ze allemaal ziet.
+    Legende: klik je een naam in de legende aan, dan gaat die reeks uit (de naam staat dan dof) en opnieuw aan. Alle reeksen
+    staan bij de start aan; staan ze allemaal uit, dan toont de grafiek niets. Een klik naast de lijnen doet niets.
+    De schaal (y-as) van elke grafiek ligt vast: van 0 tot de hoogste waarde van ALLE reeksen in die grafiek, ook als je
+    reeksen uitzet. Zo lijkt een lage lijn niet te stijgen of dalen doordat de as meeverandert. Bij elke klik wordt de overlap opnieuw
+    bekeken met enkel de zichtbare reeksen (de berekening zit in de grafiek zelf, in Vega-Lite): zet je een van twee
+    samenvallende reeksen uit, dan wordt de andere weer doorlopend. De stippelpatronen staan klaar voor tot evenveel
+    samenvallende reeksen als er reeksen in de grafiek zijn (grootste grafiek: 5).
     Voorbeeld met de huidige data: Luxemburg en Waals-Brabant hebben in alle 6 periodes 0 zwarte punten en zijn daarom in
     alle 5 stukken gestippeld. Verandert de data of het tandwiel, dan verandert de stippeling vanzelf mee.
     Aannames: overlap = exact gelijke aantallen (gehele getallen, dus geen afrondingsprobleem); de punten (bolletjes) liggen

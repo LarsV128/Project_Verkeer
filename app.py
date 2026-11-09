@@ -18,8 +18,8 @@ DATA = Path(__file__).parent / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
 # class_accident_code -> groep voor de scores en zwarte punten
 LICHT, ZWAAR, DODEN = [4], [3], [1, 2]
 
-st.set_page_config(page_title="Zwarte Punten", layout="wide", initial_sidebar_state="collapsed")
-st.title("Zwarte Punten")
+st.set_page_config(page_title="Zwart Punten (Officieus)", layout="wide", initial_sidebar_state="collapsed")
+st.title("Zwart Punten (Officieus)")
 
 
 @st.cache_data
@@ -668,9 +668,10 @@ def toon_lijngrafiek(titel, reeksen, periodes):
 
     De periode staat op de x-as met het eindjaar (2019 = 2017-2019); de volledige periode staat in de hover.
 
-    Stippellijn-regel (automatisch, per lijnstuk tussen twee opeenvolgende periodes): hebben twee of meer reeksen in dezelfde
-    grafiek hetzelfde beginpunt EN hetzelfde eindpunt, dan bedekken hun stukken elkaar en worden ze gestippeld, met de
-    streepjes om en om zodat je ze allemaal ziet. Kruisen lijnen elkaar enkel, dan blijven ze doorlopend."""
+    Stippellijn-regel (automatisch, per lijnstuk tussen twee opeenvolgende periodes): hebben twee of meer ZICHTBARE reeksen in
+    dezelfde grafiek hetzelfde beginpunt EN hetzelfde eindpunt, dan bedekken hun stukken elkaar en worden ze gestippeld, met
+    de streepjes om en om zodat je ze allemaal ziet. Kruisen lijnen elkaar enkel, dan blijven ze doorlopend.
+    Klik je een reeks in de legende uit, dan wordt de overlap opnieuw bekeken (in de grafiek zelf, niet in Python)."""
     namen = list(reeksen)
     perioden = [str(eind) for eind, _ in periodes]
     volledig = {str(eind): f"{begin}-{eind}" for eind, begin in periodes}
@@ -684,44 +685,78 @@ def toon_lijngrafiek(titel, reeksen, periodes):
         ]
     )
 
-    # Lijnstukken: per stuk (periode i -> i+1) groeperen we de reeksen met dezelfde (begin, eind)
-    stukken = []
-    for i in range(len(perioden) - 1):
-        groepen = {}
-        for naam in namen:
-            groepen.setdefault((reeksen[naam][i], reeksen[naam][i + 1]), []).append(naam)
-        for leden in groepen.values():
-            k = len(leden)  # aantal reeksen op dit stuk
-            for r, naam in enumerate(leden):  # r = rang binnen de groep
-                for j in (i, i + 1):
-                    stukken.append(
-                        {
-                            "reeks": naam,
-                            "periode": perioden[j],
-                            "aantal": reeksen[naam][j],
-                            "stuk": f"{naam}|{i}",  # elk stuk is een eigen lijntje
-                            "patroon": f"{k}-{r}" if k > 1 else "enkel",
-                        }
-                    )
-    stukken = pd.DataFrame(stukken)
+    # Lijnstukken: 2 rijen per reeks en per stuk (periode i -> i+1), met begin- en eindwaarde van het stuk erbij.
+    # De overlap zelf berekent de grafiek (zie hieronder), want die moet veranderen als je reeksen in de legende aan/uit zet.
+    stukken = pd.DataFrame(
+        [
+            {
+                "reeks": naam,
+                "volgorde": volgorde,
+                "periode": perioden[j],
+                "aantal": reeksen[naam][j],
+                "stuk": f"{naam}|{i}",  # elk stuk is een eigen lijntje
+                "i": i,
+                "begin": reeksen[naam][i],
+                "eind": reeksen[naam][i + 1],
+            }
+            for volgorde, naam in enumerate(namen)
+            for i in range(len(perioden) - 1)
+            for j in (i, i + 1)
+        ]
+    )
 
+    # Legende aanklikken: elke klik zet een reeks aan of uit (uitgezette reeksen staan dof in de legende).
+    # We starten met alle reeksen aan (value). toggle="true" (een TEKST, geen boolean True!): een klik wisselt enkel die reeks,
+    # zonder shift. Vega-Lite gebruikt toggle als uitdrukking; een boolean wordt genegeerd, dan kiest elke klik "enkel deze".
+    # empty=False: staan alle reeksen uit, dan toont de grafiek niets (en staan alle namen dof in de legende).
+    aan = alt.selection_point(
+        fields=["reeks"],
+        bind="legend",
+        toggle="true",
+        empty=False,
+        value=[{"reeks": naam} for naam in namen],
+    )
+
+    # De y-as ligt vast per grafiek (0 tot de hoogste waarde van ALLE reeksen), ook als je reeksen uitzet. Anders past de as
+    # zich aan de zichtbare lijnen aan en lijkt een lage lijn te stijgen als je de hoogste uitzet.
+    hoogste = max(1, max(max(aantallen) for aantallen in reeksen.values()))
     x = alt.X("periode:O", title="Periode (eindjaar van 3 jaar)", axis=alt.Axis(labelAngle=0), scale=alt.Scale(domain=perioden))
-    y = alt.Y("aantal:Q", title="Aantal zwarte punten", scale=alt.Scale(zero=True))
+    y = alt.Y("aantal:Q", title="Aantal zwarte punten", scale=alt.Scale(domain=[0, hoogste], nice=True))
     kleur = alt.Color("reeks:N", title=None, scale=alt.Scale(domain=namen))  # vaste volgorde en kleuren
 
-    lijnen = alt.Chart(stukken).encode(x=x, y=y, color=kleur, detail="stuk:N")
-    lagen = []
-    for patroon in sorted(stukken["patroon"].unique()):
-        laag = lijnen.transform_filter(alt.datum.patroon == patroon)
-        if patroon == "enkel":
-            lagen.append(laag.mark_line())
-        else:
-            k, r = (int(v) for v in patroon.split("-"))
-            # k reeksen delen het stuk: reeks r tekent zijn streepje op plek r van een periode van k streepjes
-            dash = [STREEP, STREEP * (k - 1)] if r == 0 else [0, STREEP * r, STREEP, STREEP * (k - 1 - r)]
-            lagen.append(laag.mark_line(strokeDash=dash))
-    lagen.append(
+    # Stippelpatroon per lijnstuk: k = aantal ZICHTBARE reeksen met hetzelfde begin- en eindpunt op dit stuk, r = rang
+    # van deze reeks daarbinnen (0 ... k-1). Reeks r tekent zijn streepje op plek r in een periode van k streepjes.
+    # k = 1: doorlopend ([1, 0]). Het patroon staat dus voor elke (k, r) vooraf klaar, tot het aantal reeksen.
+    patronen = {}
+    for k in range(1, len(namen) + 1):
+        for r in range(k):
+            if k == 1:
+                patronen[f"{k}-{r}"] = [1, 0]
+            elif r == 0:
+                patronen[f"{k}-{r}"] = [STREEP, STREEP * (k - 1)]
+            else:
+                patronen[f"{k}-{r}"] = [0, STREEP * r, STREEP, STREEP * (k - 1 - r)]
+
+    lijnen = (
+        alt.Chart(stukken)
+        .transform_filter(aan)  # eerst enkel de aangezette reeksen houden ...
+        .transform_joinaggregate(k="distinct(reeks)", groupby=["i", "begin", "eind"])  # ... dan tellen hoeveel er samenvallen
+        .transform_window(rang="dense_rank()", sort=[alt.SortField("volgorde")], groupby=["i", "begin", "eind"])
+        .transform_calculate(patroon="datum.k + '-' + (datum.rang - 1)")
+        .mark_line()
+        .encode(
+            x=x,
+            y=y,
+            color=kleur,  # zelfde kleur-encoding als de bolletjes, zodat er één gezamenlijke legende is
+            detail="stuk:N",
+            strokeDash=alt.StrokeDash(
+                "patroon:N", legend=None, scale=alt.Scale(domain=list(patronen), range=list(patronen.values()))
+            ),
+        )
+    )
+    bolletjes = (
         alt.Chart(punten)
+        .transform_filter(aan)
         .mark_point(filled=True, size=60, opacity=1)
         .encode(
             x=x,
@@ -733,9 +768,11 @@ def toon_lijngrafiek(titel, reeksen, periodes):
                 alt.Tooltip("aantal:Q", title="Zwarte punten"),
             ],
         )
+        .add_params(aan)
     )
     st.subheader(titel)
-    st.altair_chart(alt.layer(*lagen), width="stretch")
+    st.altair_chart(alt.layer(lijnen, bolletjes), width="stretch")
+    st.caption("Klik op een naam in de legende om een lijn aan of uit te zetten. De schaal blijft dezelfde.")
 
 
 with tab_evolutie:
