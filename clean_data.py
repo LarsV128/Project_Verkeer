@@ -13,8 +13,9 @@ from pyproj import Transformer
 X_BEREIK = (14_000, 300_000)
 Y_BEREIK = (20_000, 250_000)
 
-RAW = Path("data") / "raw" / "OPENDATA_MAP_2017-2024.txt"
-CLEAN = Path("data") / "OPENDATA_MAP_2017-2024_clean.parquet"
+MAP = Path(__file__).parent  # paden zijn vast, ongeacht vanuit welke map je het script start
+RAW = MAP / "data" / "raw" / "OPENDATA_MAP_2017-2024.txt"
+CLEAN = MAP / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
 
 KOLOMMEN = {
     "DT_YEAR_COLLISION": "jaar",

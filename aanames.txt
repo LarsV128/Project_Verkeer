@@ -11,6 +11,8 @@ Bijgewerkt: 2026-10-27
 - Bron: data/raw/OPENDATA_MAP_2017-2024.txt (289.532 rijen). Dit bestand wordt nooit gewijzigd (hook protect_raw.py).
 - Eén rij = één ongeval. Er is niet ontdubbeld.
 - Opgeschoonde versie: data/OPENDATA_MAP_2017-2024_clean.parquet, gemaakt door clean_data.py.
+  De app (app.py) voert clean_data.py automatisch uit als deze parquet ontbreekt of ouder is dan de
+  ruwe data of het script. De parquet staat niet in git (.gitignore).
 - Scheidingsteken in de bron is "|". Tot en met 2022 is het decimaalteken een komma, vanaf 2023 een punt.
   De cleaning zet beide om naar een getal.
 - We gebruiken de Nederlandse tekstkolommen (TX_*_NL).

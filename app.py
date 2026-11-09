@@ -64,9 +64,18 @@ def zoek_clusters(x, y, gewicht, straal, drempel):
     return cluster
 
 
-if not DATA.exists():
-    st.error("Opgeschoonde data niet gevonden. Voer eerst `python clean_data.py` uit.")
-    st.stop()
+import clean_data
+
+# Opgeschoonde data ontbreekt of is ouder dan de ruwe data of het cleaningscript? Dan eerst opnieuw maken.
+if not DATA.exists() or DATA.stat().st_mtime < max(
+    clean_data.RAW.stat().st_mtime if clean_data.RAW.exists() else 0,
+    Path(clean_data.__file__).stat().st_mtime,
+):
+    if not clean_data.RAW.exists():
+        st.error(f"Ruwe data niet gevonden. Plaats OPENDATA_MAP_2017-2024.txt in `{clean_data.RAW.parent}`.")
+        st.stop()
+    with st.spinner("Data opschonen uit data/raw (enkele minuten, enkel de eerste keer)..."):
+        clean_data.main()
 
 df = laad_data(DATA.stat().st_mtime)
 
