@@ -861,9 +861,7 @@ def grensoverlap(leden):
                 "waarvan gelijke stand": int(gelijk.sum()),
             }
         )
-    tabel = pd.DataFrame(rijen)
-    tabel["% overlap"] = (tabel["met ongevallen uit meer dan 1 gebied"] / tabel["zwarte punten"] * 100).round(1)
-    return tabel
+    return pd.DataFrame(rijen)
 
 
 # ---------- Tab Data View, deel 2: foute coördinaten (onderaan hetzelfde tabblad) ----------
@@ -1004,6 +1002,56 @@ with tab_data:
         "België",
         "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.",
     )
+
+    # Alle zwarte punten met ongevallen uit meer dan één gemeente (die omvatten ook de grenzen van provincie en gewest).
+    aantal_gemeenten = leden_nl.groupby("cluster")["gemeente"].nunique()
+    grens_ids = aantal_gemeenten[aantal_gemeenten > 1].index
+    st.subheader(f"Alle zwarte punten op een gemeentegrens ({len(grens_ids)})")
+    if len(grens_ids) == 0:
+        st.info("Geen zwarte punten op een grens met deze instellingen.")
+    else:
+        labels = {}
+        for i in grens_ids:
+            deel = leden_nl[leden_nl["cluster"] == i]
+            verdeling = ", ".join(f"{g} ({n})" for g, n in deel["gemeente"].value_counts().items() if n > 0)
+            labels[i] = f"{verdeling} · score {spots_alle.at[i, 'score']:.0f}".replace(".", ",")
+        gekozen_punt = st.selectbox(
+            "Kies een zwart punt",
+            sorted(grens_ids, key=lambda i: -spots_alle.at[i, "score"]),
+            format_func=lambda i: labels[i],
+            help="Per gemeente staat het aantal ongevallen van dit zwarte punt tussen haakjes.",
+        )
+        ongevallen = leden_nl[leden_nl["cluster"] == gekozen_punt].sort_values(["gemeente", "jaar", "maand"])
+        gemeenten = [g for g in ongevallen["gemeente"].cat.categories if g in set(ongevallen["gemeente"])]
+        palet = ["#1f77b4", "#d62728", "#2ca02c", "#ff7f0e", "#9467bd", "#8c564b", "#e377c2", "#17becf"]
+        kleur_van = {g: palet[n % len(palet)] for n, g in enumerate(gemeenten)}
+        st.markdown(
+            " &nbsp;·&nbsp; ".join(
+                f"<span style='color:{kleur_van[g]}; font-size:1.2em'>●</span> {g} ({int((ongevallen['gemeente'] == g).sum())})"
+                for g in gemeenten
+            ),
+            unsafe_allow_html=True,
+        )
+        st.map(
+            ongevallen.assign(kleur=ongevallen["gemeente"].astype(str).map(kleur_van)),
+            latitude="lat",
+            longitude="lon",
+            color="kleur",
+            size=3,
+        )
+        st.dataframe(
+            ongevallen[["gemeente", "jaar", "maand", "uur", "class_accident", "x_lambert72", "y_lambert72", "lat", "lon"]],
+            width="stretch",
+            hide_index=True,
+            column_config={c: st.column_config.NumberColumn(format="%.1f") for c in ("x_lambert72", "y_lambert72")}
+            | {c: st.column_config.NumberColumn(format="%.6f") for c in ("lat", "lon")},
+        )
+        toon_dekking(
+            len(ongevallen),
+            len(ongevallen),
+            "dit zwarte punt",
+            "Alle ongevallen die bij dit zwarte punt tellen staan op de kaart en in de tabel.",
+        )
 
 # ---------- Bron (onder alle tabbladen) ----------
 st.divider()

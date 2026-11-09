@@ -148,6 +148,9 @@ Definitie in dit project:
   één keer over de hele periode (vaste locaties), ook als de weergave "Elk jaar apart" staat.
   Uitkomst met de standaardinstellingen (2022-2024, 50 m, score >= 15 en >= 3 ongevallen): 215 zwarte punten; gewest 0
   en provincie 0 met ongevallen uit meer dan 1 gebied; gemeente 22 (10,2 %), waarvan 1 met gelijke stand.
+  Eronder staat een lijst met alle zwarte punten die ongevallen uit meer dan één gemeente bevatten (22 met de
+  standaardinstellingen), gesorteerd op score. Kies je er één, dan zie je een ingezoomde kaart met alle ongevallen die
+  meetellen, een kleur per gemeente (met aantallen), en een tabel met hun coördinaten.
 
 5.2 Instellingen (tabblad "Kaart")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
