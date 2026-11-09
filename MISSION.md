@@ -51,14 +51,14 @@ kunnen worden uitgelegd.
 - **Afstand:** standaard 50 m (instelbaar 25-200 m), ongeveer één kruispunt.
 - **Twee methodes:** *Puntenscore* (standaard, vanaf 15 punten en minstens 3 ongevallen) en *Aantal ongevallen* (standaard minstens 3).
 - Resultaat standaard (50 m, heel België): 2022-2024 → 215 zwarte punten; 2021-2023 → 180.
-- **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen. De **kleur toont de score** met een vaste schaal die overal hetzelfde is (blauw < 20, lichtblauw 20-24, geel 25-29, oranje 30-49, rood ≥ 50), met een legende onder elke kaart.
+- **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen. De **kleur toont de score** met een vaste schaal die overal hetzelfde is (dof geel < 20, dof oranje 20-24, zalm 25-29, karmozijn 30-49, dof paars ≥ 50; de laatste 5 klassen van een Datawrapper-schaal), met een legende onder elke kaart.
 - **Extra voorwaarden (optioneel, in het tandwiel):** een plek met enkel lichtgewonden telt niet mee; minimum voor licht, zwaar en doden; minimum zwaar en doden combineren met *en* of *of*.
 - **Twee weergaven:** *Vaste locaties, aantallen per jaar* (voor evolutie van dezelfde plek) en *Elk jaar apart*.
 
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.
 - De app heet **Zwarte Punten**. In het tabblad **Kaart** staan alle keuzes (weergave, methode, afstand, punten, drempel, extra voorwaarden) in één menu ⚙️; bovenaan enkel de filters (gewest, provincie, gemeente, periode van 3 jaar met pijltjes; geen keuze voor het type: dat zit in de punten).
-- Onder de kaart staat een **tabel met het aantal zwarte punten in de gekozen periode**, in 2 afgebakende blokken: Gewesten en Provincies, elk met onderaan een rij **Totaal** (= België, altijd heel België) in de opmaak van de kolomnamen (vet) maar cursief.
+- Onder de kaart staat een **tabel met het aantal zwarte punten in de gekozen periode**, in 2 afgebakende blokken: Gewesten en Provincies, elk met onderaan een rij **Totaal** (= België, altijd heel België) (doffer grijs, niet vet, cursief); de kolomnamen staan in vet en wit.
 - Tabbladen **Kaart** (eerst) en **Data View**, elk met eigen filters bovenaan. Kaart toont enkel info over zwarte punten.
 - **Data View** bevat bovenaan een uitklapbare data viewer (alle rijen van de selectie, sorteren, zoeken, kolomkeuze), daaronder het overzicht per type, de grafiek, de ranglijst, en onderaan de **foute coördinaten**.
 - Onder elke tabel, kaart en grafiek staat **"weergegeven / totaal geregistreerd"** in het gekozen gebied (bv. 253.651 / 289.532 = 87,6 % voor kaarten in heel België); onderaan staat de **bron** (Statbel).

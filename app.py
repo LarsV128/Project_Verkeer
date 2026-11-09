@@ -339,12 +339,13 @@ CIRKEL_STRAAL = 60  # meter; elk zwart punt is even groot, de cirkel duidt enkel
 
 # Vaste kleurschaal voor de score van een zwart punt, overal dezelfde (elk tabblad, weergave, periode en gebied):
 # (ondergrens, kleur, label). De grenzen volgen de verdeling van de scores: de meeste punten liggen tussen 15 en 25.
+# Kleuren: de laatste 5 klassen van de Datawrapper-schaal (dof geel naar dof paars), exact gemeten in de afbeelding.
 KLEURKLASSEN = [
-    (0, "#2c7bb6", "minder dan 20"),
-    (20, "#abd9e9", "20 tot 24"),
-    (25, "#ffdf6e", "25 tot 29"),
-    (30, "#fc8d59", "30 tot 49"),
-    (50, "#d73027", "50 of meer"),
+    (0, "#fbe2af", "minder dan 20"),  # dof geel
+    (20, "#fdac7a", "20 tot 24"),  # dof oranje
+    (25, "#f6736b", "25 tot 29"),  # zalm
+    (30, "#da3c6a", "30 tot 49"),  # karmozijn
+    (50, "#a90674", "50 of meer"),  # dof paars
 ]
 
 
@@ -398,15 +399,18 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
         ("Provincies", [(p, spots[spots["provincie"] == p]) for p in sorted(df["provincie"].unique())]),
     ]
 
-    # Opmaak van de kolomnamen: vet op een lichtgrijze achtergrond (werkt in licht en donker thema)
-    KOP = [("background-color", "rgba(128, 128, 128, 0.18)"), ("font-weight", "bold")]
-    KOP_CSS = "; ".join(f"{eigenschap}: {waarde}" for eigenschap, waarde in KOP)
+    # Kolomnamen: vet en wit. Wit is alleen leesbaar in het donkere thema; in het lichte thema blijven ze vet in de
+    # gewone tekstkleur. Totaal: doffer grijs (de tekst), niet vet, cursief.
+    try:
+        donker = st.context.theme.type == "dark"
+    except Exception:  # thema onbekend (bv. in een test): veilig kiezen
+        donker = False
+    KOP = [("font-weight", "bold")] + ([("color", "#ffffff")] if donker else [])
+    TOTAAL_CSS = "color: #8c8c8c; font-weight: normal; font-style: italic"
 
     def totaal_opmaak(rij):
-        """De rij 'Totaal' (= heel België) heeft de opmaak van de kolomnamen, maar cursief, met een lijn erboven."""
-        if rij["Gebied"] == "Totaal":
-            return [f"{KOP_CSS}; font-style: italic; border-top: 2px solid currentColor"] * len(rij)
-        return [""] * len(rij)
+        """De rij 'Totaal' (= heel België): doffer grijs, niet vet, cursief."""
+        return [TOTAAL_CSS if rij["Gebied"] == "Totaal" else ""] * len(rij)
 
     # Twee afgebakende blokken naast elkaar, elk met een eigen kader en titel; onderaan de rij Totaal (= België)
     for kolom, (titel, delen) in zip(st.columns([1, 1.3]), groepen):
