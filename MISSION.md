@@ -39,8 +39,9 @@ kunnen worden uitgelegd.
 
 ### Puntenscore (Vlaamse telling, sinds 2026-11-09)
 - Bron: [Vlaanderen, gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten). Volledige samenvatting in `aanames.txt` onderdeel 4.
-- Elk ongeval krijgt punten: licht 1 · zwaar 3 · doden 5, **× 1,7** als een fietser, bromfietser of voetganger betrokken is (instelbaar met het tandwiel ⚙️).
-- **Afwijking van Vlaanderen:** zij tellen per *slachtoffer*; onze bron heeft enkel het zwaarste type per *ongeval*. Onze scores liggen dus te laag, en de factor 1,7 is een benadering (betrokken, niet noodzakelijk slachtoffer).
+- Elk ongeval krijgt punten volgens zijn type: licht 1 · zwaar 3 · doden 5 (instelbaar met het tandwiel ⚙️).
+- **Afwijking van Vlaanderen:** zij tellen per *slachtoffer*; onze bron (45 variabelen, gecontroleerd) heeft geen slachtoffers, enkel het zwaarste type per *ongeval*. Wij tellen dus per ongeval.
+- De Vlaamse **verhogingsfactor 1,7** (voetgangers, fietsers, bromfietsers) nemen we **niet** over: de bron toont enkel wie *betrokken* was, niet wie het slachtoffer was. Dat zou een benadering zijn.
 - Gebruikt voor de methode "Puntenscore" (standaard) bij zwarte punten en voor de ranglijst van gemeenten.
 
 ### Zwarte punten
@@ -49,19 +50,22 @@ kunnen worden uitgelegd.
 - Werkwijze: het ongeval met de hoogste som vormt een cluster met zijn buren, die worden weggenomen, en dat herhaalt zich. Zo overlappen punten niet.
 - **Afstand:** standaard 50 m (instelbaar 25-200 m), ongeveer één kruispunt.
 - **Twee methodes:** *Puntenscore* (standaard, vanaf 15 punten en minstens 3 ongevallen) en *Aantal ongevallen* (standaard minstens 3).
-- Resultaat standaard (50 m, heel België): 2022-2024 → 529 zwarte punten; 2021-2023 → 487.
+- Resultaat standaard (50 m, heel België): 2022-2024 → 215 zwarte punten; 2021-2023 → 180.
+- **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen; score en aantallen staan in de tabel.
 - **Extra voorwaarden (optioneel, in het tandwiel):** een plek met enkel lichtgewonden telt niet mee; minimum voor licht, zwaar en doden; minimum zwaar en doden combineren met *en* of *of*.
 - **Twee weergaven:** *Vaste locaties, aantallen per jaar* (voor evolutie van dezelfde plek) en *Elk jaar apart*.
 
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.
+- In **Zwarte punten** staan alle keuzes (weergave, methode, afstand, punten, drempel, extra voorwaarden) in één menu ⚙️; bovenaan enkel de filters.
 - Tabbladen **Overzicht**, **Zwarte punten** en **Foute coördinaten**, elk met eigen filters bovenaan (één gewest, één provincie, één gemeente, jaren en types) en een overzicht per type ongeval.
 - Onder elke tabel, kaart en grafiek staat **"weergegeven / totaal geregistreerd"** in het gekozen gebied (bv. 253.651 / 289.532 = 87,6 % voor kaarten in heel België); onderaan staat de **bron** (Statbel).
 - **Overzicht** bevat ook een ranglijst van gemeenten op puntenscore, genummerd over heel België: bij een gewest of provincie alle gemeenten, bij een gemeente de top 5, de onderste 5 en 5 erboven en eronder.
 
 ## Open punten
 - [x] De **officiële definitie van "zwart punt"** opzoeken (2026-11-09: Vlaamse puntentelling overgenomen, zie boven).
-- [ ] Een **afstand of segmentdefinitie** van Vlaanderen zoeken (de pagina noemt er geen) en **slachtoffers per ongeval** zoeken (andere Statbel-dataset?) zodat we per slachtoffer kunnen tellen.
+- [ ] Een **afstand of segmentdefinitie** van Vlaanderen zoeken (de pagina noemt er geen) en **slachtoffers per ongeval** zoeken (andere Statbel-dataset?) zodat we per slachtoffer kunnen tellen (en eventueel de factor 1,7 kunnen toepassen).
+- [ ] De drempel **15 punten** komt uit de telling per slachtoffer; onderzoeken wat een passende drempel is bij onze telling per ongeval.
 - [ ] Het verschil tussen "Met doden" (code 1) en "Dodelijk gewonden" (code 2) navragen; nu samengevoegd.
 - [ ] **Eerlijk vergelijken over de jaren:** rekening houden met de verschillende dekking van de coördinaten.
 - [x] De hook `protect_raw.py` verfijnen (2026-11-09): lezen uit `data/raw/` mag nu (`open(pad)`, `open(pad, "r")`, `shutil.copy` met raw als bron); schrijven, verwijderen, verplaatsen en kopiëren *naar* raw blijft geblokkeerd, ook via `Path(...).unlink()`.
