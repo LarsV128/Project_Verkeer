@@ -12,7 +12,7 @@
 - De huidige opgeschoonde data is `data/OPENDATA_MAP_2017-2024_clean.parquet`, gemaakt met `python clean_data.py`. De app voert dit script zelf uit als de parquet ontbreekt of ouder is dan `data/raw/` of het script; de parquet staat niet in git. Bij elke wijziging in de cleaning: script opnieuw uitvoeren en `aanames.txt` bijwerken.
 
 ## Bestanden in dit project
-- `app.py`: Streamlit-app (`streamlit run app.py --server.port 1234`), met de tabbladen Overzicht, Zwarte punten en Foute coördinaten. Geen zijbalk; filters staan bovenaan elk tabblad.
+- `app.py`: Streamlit-app (`streamlit run app.py --server.port 1234`), met de tabbladen Zwarte punten en Data View (met onderaan de foute coördinaten). Geen zijbalk; filters staan bovenaan elk tabblad, alle andere instellingen van Zwarte punten in het tandwiel.
 - `clean_data.py`: data/raw → data, inclusief omrekening van de coördinaten en het herstel van de 2 onmogelijke waarden.
 - `aanames.txt`: alle keuzes en instellingen uitgeschreven (coördinaten, puntenscore, definitie van een zwart punt, ranglijst). **Houd dit bestand bij elke wijziging in de logica actueel.**
 - `MISSION.md`: missie, werkprincipes, genomen keuzes en open punten. Houd dit ook actueel.

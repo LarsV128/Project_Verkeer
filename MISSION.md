@@ -58,9 +58,10 @@ kunnen worden uitgelegd.
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.
 - In **Zwarte punten** staan alle keuzes (weergave, methode, afstand, punten, drempel, extra voorwaarden) in één menu ⚙️; bovenaan enkel de filters.
-- Tabbladen **Overzicht**, **Zwarte punten** en **Foute coördinaten**, elk met eigen filters bovenaan (één gewest, één provincie, één gemeente, jaren en types) en een overzicht per type ongeval.
+- Tabbladen **Zwarte punten** (eerst) en **Data View**, elk met eigen filters bovenaan (één gewest, één provincie, één gemeente, jaren/periode en types). Zwarte punten toont enkel info over zwarte punten.
+- **Data View** bevat bovenaan een uitklapbare data viewer (alle rijen van de selectie, sorteren, zoeken, kolomkeuze), daaronder het overzicht per type, de grafiek, de ranglijst, en onderaan de **foute coördinaten**.
 - Onder elke tabel, kaart en grafiek staat **"weergegeven / totaal geregistreerd"** in het gekozen gebied (bv. 253.651 / 289.532 = 87,6 % voor kaarten in heel België); onderaan staat de **bron** (Statbel).
-- **Overzicht** bevat ook een ranglijst van gemeenten op puntenscore, genummerd over heel België: bij een gewest of provincie alle gemeenten, bij een gemeente de top 5, de onderste 5 en 5 erboven en eronder.
+- **Data View** bevat ook een ranglijst van gemeenten op puntenscore, genummerd over heel België: bij een gewest of provincie alle gemeenten, bij een gemeente de top 5, de onderste 5 en 5 erboven en eronder.
 
 ## Open punten
 - [x] De **officiële definitie van "zwart punt"** opzoeken (2026-11-09: Vlaamse puntentelling overgenomen, zie boven).

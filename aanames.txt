@@ -69,7 +69,7 @@ Open vraag: wat is het verschil tussen code 1 en code 2? (navragen in de cursus 
 - Controle: beide punten liggen volgens een visuele controle op een weg. Daardoor is de aanname aannemelijk.
   Knokke-Heist is sterk (71 ongevallen binnen 500 m); Herentals ligt aan de zuidrand van de gemeente met slechts
   2 ongevallen binnen 500 m en blijft het zwakste punt.
-- De originele waarden staan in de kolommen x_bron en y_bron. Het tabblad "Foute coördinaten" toont ze met kaart.
+- De originele waarden staan in de kolommen x_bron en y_bron. Onderaan het tabblad "Data View" (onderdeel "Foute coördinaten") staan ze met kaart.
 
 3.4 Dekking verschilt per jaar (belangrijk voor de evolutie)
 - Bruikbare coördinaten: 2017 84,7% - 2018 83,2% - 2019 82,8% - 2020 81,0% - 2021 81,7%
@@ -115,7 +115,7 @@ Praktisch:
       licht  = 1 punt      zwaar = 3 punten      doden = 5 punten
 - Score van een plek of gemeente = som van de punten van de ongevallen.
 - Aanpassen in de app: tabblad "Zwarte punten", knop "⚙️ Instellingen" (één menu met alle keuzes). De
-  punten per type gelden ook voor de ranglijst van gemeenten in het tabblad "Overzicht".
+  punten per type gelden ook voor de ranglijst van gemeenten in het tabblad "Data View".
 
 
 5. ZWART PUNT (DEFINITIE)
@@ -182,7 +182,7 @@ Definitie in dit project:
   Nu heb je daarvoor minstens 15 punten en minstens 3 ongevallen nodig.)
 
 
-6. RANGLIJST VAN GEMEENTEN (tabblad "Overzicht")
+6. RANGLIJST VAN GEMEENTEN (tabblad "Data View")
 ------------------------------------------------
 - Rangschikking op puntenscore (zie 4), positie 1 = hoogste score. Bij gelijke score: eerst het hoogste aantal
   ongevallen, daarna alfabetisch.
@@ -194,17 +194,25 @@ Definitie in dit project:
 
 7. FILTERS EN WEERGAVE
 ----------------------
+- De app heeft 2 tabbladen, in deze volgorde: "Zwarte punten" en "Data View". (Het tabblad "Overzicht" heet nu
+  "Data View"; het tabblad "Foute coördinaten" is onderaan "Data View" gezet.)
 - Elk tabblad heeft eigen filters bovenaan: één gewest, één provincie, één gemeente, jaren en types.
-  Een wijziging in een tabblad verandert niets in de andere tabbladen.
+  Een wijziging in een tabblad verandert niets in het andere tabblad.
 - Kies je een ander gewest, dan springen provincie en gemeente terug naar "Alle".
 - Tabblad "Zwarte punten": boven het tabblad staan enkel de filters; alle andere keuzes (weergave, methode, afstand,
   minimum ongevallen, punten, drempel en extra voorwaarden) zitten in één menu "⚙️ Instellingen". Daaronder staat een
   samenvatting van de gekozen instellingen.
-- Tabblad "Zwarte punten": geen jaren-slider maar pijltjes ◀ ▶ om een periode van 3 jaar te kiezen (2017-2019 tot
-  2022-2024, standaard de laatste). De andere tabbladen hebben nog de slider.
-- Elk tabblad toont een overzicht per type ongeval voor de gekozen selectie.
+- Tabblad "Zwarte punten": geen jaren-slider maar pijltjes ◀ ▶ om de "Periode" te kiezen (3 jaar: 2017-2019 tot
+  2022-2024, standaard de laatste). Het tabblad Data View heeft nog de slider.
+- Tabblad "Zwarte punten" toont enkel informatie over zwarte punten: het overzicht per type ongeval staat daar niet meer.
+- Tabblad "Data View" van boven naar onder: filters, uitklapbare "Data viewer" (alle rijen van de selectie, geen
+  limiet meer van 1000, met sorteren, zoeken en een kolomkeuze), aantal ongevallen, overzicht per type, grafiek per
+  jaar en type, ranglijst van gemeenten, en onderaan "Foute coördinaten" (status per type, de herstelde waarden en
+  de kaarten).
 - Er is geen zijbalk meer. De instellingen voor puntenscore en extra voorwaarden staan in het tandwiel in het tabblad
   "Zwarte punten".
+- Het tabblad "Foute coördinaten" gebruikt nu de filters van "Data View" (niet langer eigen filters) voor de tabel
+  met de status per type; de lijst met herstelde waarden en de kaarten tonen nog altijd alle ongevallen.
 - Poort van de app: 1234 (streamlit run app.py --server.port 1234).
 - Onder elke tabel, kaart en grafiek staat de verhouding "weergegeven / totaal geregistreerd" (functie toon_dekking
   in app.py):
@@ -214,10 +222,10 @@ Definitie in dit project:
   * Kaarten en zwarte punten gebruiken enkel ongevallen met bruikbare coördinaten (ok + hersteld). Heel België, alle
     jaren en types: 253.651 / 289.532 = 87,6 %. Per gewest of provincie ligt dat percentage anders.
   * Tabellen en grafieken die alle ongevallen tellen (overzicht per type, per jaar, ranglijst) tonen 100 %.
-  * De ruwe rijen (eerste 1000) tonen 1.000 / totaal; de ranglijst bij een gekozen gemeente toont enkel de gemeenten
-    uit de drie tabellen ten opzichte van heel België.
+  * De Data viewer toont alle rijen van de selectie (100 %); de ranglijst bij een gekozen gemeente toont enkel de
+    gemeenten uit de drie tabellen ten opzichte van heel België.
   * Bij "Elk jaar apart" geldt de verhouding voor het gekozen jaar. Let op: de dekking verschilt per jaar (3.4).
-  * Tabblad "Foute coördinaten": per kaart de verhouding voor die gemeente (alle jaren en types).
+  * Onderaan Data View, onderdeel "Foute coördinaten": per kaart de verhouding voor die gemeente (alle jaren en types).
 - Onderaan de app staat de bron: Statbel, verkeersongevallen (open data), 2017-2024, met de vermelding dat de data hier
   is opgeschoond (coördinaten omgerekend, 2 waarden hersteld). Link (door jou aangeleverd):
   https://statbel.fgov.be/sites/default/files/files/opendata/Accident_XY/OPENDATA_MAP_2017-2024.xlsx

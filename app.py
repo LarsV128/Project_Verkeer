@@ -131,7 +131,7 @@ def toon_filters(prefix, periode_pijltjes=False):
         sleutel = f"{prefix}_start"
         st.session_state.setdefault(sleutel, JAAR_MAX - PERIODE_JAREN + 1)
         start = st.session_state[sleutel]
-        k4.markdown(f"Periode van {PERIODE_JAREN} jaar")
+        k4.markdown("Periode")
         links, midden, rechts = k4.columns([1, 2, 1])
         links.button("◀", key=f"{prefix}_vorige", on_click=schuif_periode, args=(sleutel, -1), disabled=start <= JAAR_MIN)
         midden.markdown(f"**{start}-{start + PERIODE_JAREN - 1}**")
@@ -263,16 +263,32 @@ def toon_ranglijst(filt):
     toon(g, titel)
 
 
-tab_overzicht, tab_punten, tab_fout = st.tabs(["Overzicht", "Zwarte punten", "Foute coördinaten"])
+tab_punten, tab_data = st.tabs(["Zwarte punten", "Data View"])
 
-# ---------- Tab 1: overzicht ----------
-with tab_overzicht:
+# ---------- Tab Data View (met onderaan de foute coördinaten, zie verderop) ----------
+with tab_data:
     f1 = toon_filters("overzicht")
     sel = f1.sel
+    plaats1 = plaats_label(f1)
     if sel.empty:
         st.warning("Geen ongevallen voor deze selectie. Pas de filters aan.")
     else:
-        plaats1 = plaats_label(f1)
+        with st.expander("🔎 Data viewer: alle ongevallen van de selectie"):
+            st.caption(
+                "Klik op een kolomkop om te sorteren, gebruik het zoekicoon rechtsboven de tabel om te zoeken en het "
+                "pijltje om de tabel schermvullend te zien."
+            )
+            kolommen_kiezen = st.multiselect("Kolommen", list(sel.columns), default=list(sel.columns), key="viewer_kolommen")
+            st.dataframe(
+                sel[kolommen_kiezen],
+                width="stretch",
+                height=450,
+                hide_index=True,
+                column_config={c: st.column_config.NumberColumn(format="%.1f") for c in ("x_lambert72", "y_lambert72")}
+                | {c: st.column_config.NumberColumn(format="%.5e") for c in ("x_bron", "y_bron")},
+            )
+            toon_dekking(len(sel), len(sel), plaats1, "Alle rijen van de selectie staan in deze tabel.")
+
         st.metric("Aantal ongevallen in selectie", nl(len(sel)))
         toon_type_overzicht(sel, plaats1)
 
@@ -281,11 +297,6 @@ with tab_overzicht:
         toon_dekking(len(sel), len(sel), plaats1, "Alle ongevallen staan in deze grafiek, ook die zonder coördinaten.")
 
     toon_ranglijst(f1)
-
-    if not sel.empty:
-        with st.expander("Ruwe rijen van de selectie (eerste 1000)"):
-            st.dataframe(sel.head(1000), width="stretch", hide_index=True)
-            toon_dekking(min(len(sel), 1000), len(sel), plaats1, "Enkel de eerste 1000 rijen worden getoond.")
 
 # ---------- Tab 2: zwarte punten ----------
 MODUS_VAST = "Vaste locaties, aantallen per jaar"
@@ -410,7 +421,7 @@ with tab_punten:
         st.markdown("**Puntenscore**")
         st.caption(
             "Elk ongeval telt mee met de punten van zijn type. Gebruikt bij de methode 'Puntenscore' en voor de "
-            "ranglijst van gemeenten in het tabblad Overzicht."
+            "ranglijst van gemeenten in het tabblad Data View."
         )
         st.number_input("Punten per ongeval met lichtgewonden", min_value=0, value=1, step=1, key="p_licht")
         st.number_input("Punten per ongeval met zwaargewonden", min_value=0, value=3, step=1, key="p_zwaar")
@@ -482,7 +493,6 @@ with tab_punten:
     basis_kolommen = ["gemeente", "score", "totaal", "licht", "zwaar", "doden"]
 
     plaats2 = plaats_label(f2)
-    toon_type_overzicht(sel, plaats2)
 
     punten = sel[sel["coord_status"].isin(["ok", "hersteld"])].reset_index(drop=True)
     dek = (len(punten), len(sel), plaats2)
@@ -561,27 +571,27 @@ with tab_punten:
                 dek_jaar = (int((punten["jaar"] == jaar_keuze).sum()), int((sel["jaar"] == jaar_keuze).sum()), plaats2)
                 toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar)
 
-# ---------- Tab 3: foute coördinaten ----------
-with tab_fout:
-    f3 = toon_filters("fout")
+# ---------- Tab Data View, deel 2: foute coördinaten (onderaan hetzelfde tabblad) ----------
+with tab_data:
+    st.divider()
+    st.header("Foute coördinaten")
     st.markdown(
         "Coördinaten staan in **Lambert72** (meters). Staat een waarde buiten België, dan is ze onmogelijk; "
-        "lege waarden ontbreken gewoon. De filters hierboven gelden voor het overzicht per type; de lijst en de "
+        "lege waarden ontbreken gewoon. De filters bovenaan dit tabblad gelden voor de tabel per type; de lijst en de "
         "kaarten met herstelde coördinaten daaronder tonen altijd alle ongevallen."
     )
 
-    st.subheader("Overzicht per type ongeval")
-    status = pd.crosstab(f3.sel["class_accident"], f3.sel["coord_status"]).reindex(TYPES, fill_value=0)
+    st.subheader("Status van de coördinaten per type ongeval")
+    status = pd.crosstab(f1.sel["class_accident"], f1.sel["coord_status"]).reindex(TYPES, fill_value=0)
     status = status.reindex(columns=["ok", "hersteld", "ontbreekt", "onmogelijk"], fill_value=0)
     status.loc["Totaal"] = status.sum()
     status["% bruikbaar"] = ((status["ok"] + status["hersteld"]) / status.sum(axis=1).replace(0, np.nan) * 100).round(1)
     status = status.rename(columns={"ok": "bruikbaar"}).reset_index().rename(columns={"class_accident": "type"})
     st.dataframe(status, width="stretch", hide_index=True)
-    plaats3 = plaats_label(f3)
     toon_dekking(
-        int(f3.sel["coord_status"].isin(["ok", "hersteld"]).sum()),
-        len(f3.sel),
-        plaats3,
+        int(f1.sel["coord_status"].isin(["ok", "hersteld"]).sum()),
+        len(f1.sel),
+        plaats1,
         "Dit is de verhouding van ongevallen mét bruikbare coördinaten (kolommen bruikbaar + hersteld) tot alle ongevallen "
         "in de tabel, zoals ook in de kolom % bruikbaar.",
     )
@@ -671,5 +681,5 @@ st.caption(
     "**Bron:** Statbel, verkeersongevallen (open data), 2017-2024: "
     "[OPENDATA_MAP_2017-2024.xlsx](https://statbel.fgov.be/sites/default/files/files/opendata/Accident_XY/OPENDATA_MAP_2017-2024.xlsx). "
     "Opgeschoond en bewerkt in dit project: coördinaten omgerekend naar breedte- en lengtegraad en 2 onmogelijke "
-    "waarden hersteld (zie het tabblad Foute coördinaten). Ongevallen zonder bruikbare coördinaten staan niet op de kaart."
+    "waarden hersteld (zie onderaan het tabblad Data View). Ongevallen zonder bruikbare coördinaten staan niet op de kaart."
 )
