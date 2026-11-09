@@ -1,6 +1,6 @@
 # Mission statement – Verkeersongevallen in België, 2017-2024
 
-> Bijgewerkt op 2026-10-27. Alle details en getallen staan uitgeschreven in [`aanames.txt`](aanames.txt).
+> Bijgewerkt op 2026-11-09. Alle details en getallen staan uitgeschreven in [`aanames.txt`](aanames.txt).
 
 ## Missie
 Verkeersongevallen in België (2017-2024) verkennen en begrijpen: waar, wanneer en met welke afloop ze gebeuren.
@@ -53,6 +53,7 @@ kunnen worden uitgelegd.
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.
 - Tabbladen **Overzicht**, **Zwarte punten** en **Foute coördinaten**, elk met eigen filters bovenaan (één gewest, één provincie, één gemeente, jaren en types) en een overzicht per type ongeval.
+- Onder elke tabel, kaart en grafiek staat **"weergegeven / totaal geregistreerd"** in het gekozen gebied (bv. 253.651 / 289.532 = 87,6 % voor kaarten in heel België); onderaan staat de **bron** (Statbel).
 - **Overzicht** bevat ook een ranglijst van gemeenten op puntenscore, genummerd over heel België: bij een gewest of provincie alle gemeenten, bij een gemeente de top 5, de onderste 5 en 5 erboven en eronder.
 
 ## Open punten

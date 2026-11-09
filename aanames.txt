@@ -3,7 +3,7 @@ AANNAMES EN INSTELLINGEN - Verkeersongevallen in België, 2017-2024
 Dit zijn alle keuzes die in de data en de app zitten, uitgeschreven zodat je ze kan uitleggen en aanpassen.
 Waar een keuze staat ("in de app" of "in clean_data.py"), zie je ook waar je ze kan veranderen.
 
-Bijgewerkt: 2026-10-27
+Bijgewerkt: 2026-11-09
 
 
 1. DATA
@@ -150,6 +150,20 @@ Definitie in dit project:
 - Er is geen zijbalk meer. De instellingen voor puntenscore en extra voorwaarden staan in het tandwiel in het tabblad
   "Zwarte punten".
 - Poort van de app: 1234 (streamlit run app.py --server.port 1234).
+- Onder elke tabel, kaart en grafiek staat de verhouding "weergegeven / totaal geregistreerd" (functie toon_dekking
+  in app.py):
+      totaal geregistreerd = alle ongevallen in het gekozen gebied (gemeente, provincie, gewest of heel België) binnen de
+                             gekozen jaren en types, ook die zonder coördinaten;
+      weergegeven          = hoeveel daarvan in die tabel of op die kaart zitten.
+  * Kaarten en zwarte punten gebruiken enkel ongevallen met bruikbare coördinaten (ok + hersteld). Heel België, alle
+    jaren en types: 253.651 / 289.532 = 87,6 %. Per gewest of provincie ligt dat percentage anders.
+  * Tabellen en grafieken die alle ongevallen tellen (overzicht per type, per jaar, ranglijst) tonen 100 %.
+  * De ruwe rijen (eerste 1000) tonen 1.000 / totaal; de ranglijst bij een gekozen gemeente toont enkel de gemeenten
+    uit de drie tabellen ten opzichte van heel België.
+  * Bij "Elk jaar apart" geldt de verhouding voor het gekozen jaar. Let op: de dekking verschilt per jaar (3.4).
+  * Tabblad "Foute coördinaten": per kaart de verhouding voor die gemeente (alle jaren en types).
+- Onderaan de app staat de bron: Statbel, verkeersongevallen (open data), 2017-2024, met de vermelding dat de data hier
+  is opgeschoond (coördinaten omgerekend, 2 waarden hersteld). De exacte naam of link is niet uit het bestand gehaald.
 
 
 8. NOG OPEN
