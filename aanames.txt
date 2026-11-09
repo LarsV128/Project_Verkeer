@@ -213,9 +213,8 @@ Definitie in dit project:
 
 7. FILTERS EN WEERGAVE
 ----------------------
-- De app heet "Ongevallen" (voorheen "Zwart Punten (Officieus)" en "Zwarte Punten") en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (Het tabblad
-  "Kaart" heette eerst "Zwarte punten"; het tabblad "Overzicht" heet nu "Data View"; het tabblad "Foute coördinaten"
-  is onderaan "Data View" gezet.)
+- De app heet "Ongevallen" en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (De foute
+  coördinaten staan onderaan "Data View".)
 - TABBLAD "EVOLUTIE" (sinds 2026-11-09): 3 lijngrafieken met het aantal zwarte punten per periode van 3 jaar. De punten
   zijn met lijnen verbonden en je ziet de waarden in een hover.
       1. "België": 4 reeksen: Totaal, Vlaanderen (Vlaams Gewest), Brussels Gewest en Wallonië (Waals Gewest).

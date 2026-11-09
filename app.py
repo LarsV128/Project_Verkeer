@@ -89,7 +89,7 @@ JAAR_MIN, JAAR_MAX = int(df["jaar"].min()), int(df["jaar"].max())
 
 
 def punten_instellingen():
-    """Punten per type, ingesteld via het tandwiel in het tabblad Zwarte punten.
+    """Punten per type, ingesteld via het tandwiel in het tabblad Kaart.
 
     Standaard 1 / 3 / 5 zoals bij de Vlaamse telling voor gevaarlijke punten, maar per ONGEVAL (volgens het zwaarste
     type) en niet per slachtoffer: de bron heeft geen slachtoffers."""
@@ -219,7 +219,7 @@ def toon_ranglijst(filt):
     st.subheader("Gemeenten gerangschikt op puntenscore")
     st.caption(
         f"Score = {inst.licht} × licht + {inst.zwaar} × zwaar + {inst.doden} × doden, per ongeval (niet per slachtoffer; "
-        f"instellen via ⚙️ in het tabblad Zwarte punten). Nummering over alle {len(g)} gemeenten in België; "
+        f"instellen via ⚙️ in het tabblad Kaart). Nummering over alle {len(g)} gemeenten in België; "
         "positie 1 heeft de hoogste score."
     )
 
@@ -308,7 +308,7 @@ with tab_data:
 
     toon_ranglijst(f1)
 
-# ---------- Tab 2: zwarte punten ----------
+# ---------- Tab Kaart: zwarte punten ----------
 MODUS_VAST = "Vaste locaties, aantallen per jaar"
 MODUS_JAAR = "Elk jaar apart"
 METHODE_AANTAL = "Aantal ongevallen"
