@@ -120,7 +120,32 @@ def toon_filters(prefix):
     return SimpleNamespace(sel=sel, gewest=gewest, provincie=provincie, gemeente=gemeente, jaren=jaren, types=types)
 
 
-def toon_type_overzicht(sel):
+def nl(n):
+    """Getal met punt als duizendtalscheiding: 12345 -> '12.345'."""
+    return f"{int(n):,}".replace(",", ".")
+
+
+def plaats_label(filt):
+    """Het kleinste gebied dat in de filters gekozen is: gemeente, provincie, gewest of heel België."""
+    if filt.gemeente != "Alle gemeenten":
+        return filt.gemeente
+    if filt.provincie != "Alle provincies":
+        return f"provincie {filt.provincie}"
+    if filt.gewest != "Alle gewesten":
+        return filt.gewest
+    return "België"
+
+
+def toon_dekking(weergegeven, totaal, plaats, uitleg=""):
+    """Toont de verhouding weergegeven / totaal geregistreerde ongevallen onder een tabel, kaart of grafiek.
+
+    `totaal` = alle geregistreerde ongevallen in `plaats` (binnen de gekozen jaren en types); `weergegeven` = hoeveel
+    daarvan in de tabel of op de kaart zitten. Ongevallen zonder bruikbare coördinaten verwerken we niet op de kaart."""
+    pct = f"{weergegeven / totaal * 100:.1f}".replace(".", ",") if totaal else "–"
+    st.caption(f"Weergegeven / totaal geregistreerd in {plaats}: **{nl(weergegeven)} / {nl(totaal)} ({pct} %)**. {uitleg}")
+
+
+def toon_type_overzicht(sel, plaats):
     """Aantal ongevallen per type (class_accident) voor de selectie."""
     st.subheader("Overzicht per type ongeval")
     aantal = sel["class_accident"].value_counts().reindex(TYPES, fill_value=0)
@@ -129,6 +154,7 @@ def toon_type_overzicht(sel):
     tabel["aandeel (%)"] = (tabel["aantal"] / totaal * 100).round(1) if totaal else 0.0
     tabel.loc[len(tabel)] = ["Totaal", totaal, 100.0 if totaal else 0.0]
     st.dataframe(tabel, width="stretch", hide_index=True)
+    toon_dekking(len(sel), len(sel), plaats, "Alle ongevallen staan in deze tabel, ook die zonder coördinaten.")
 
 
 def gemeente_ranglijst(jaren, types):
@@ -180,6 +206,13 @@ def toon_ranglijst(filt):
             return
         i = int(rij[0])
         st.metric(f"Positie van {filt.gemeente}", f"{i + 1} van {len(g)}")
+        getoond = sorted(set(range(5)) | set(range(max(i - 5, 0), i + 6)) | set(range(max(len(g) - 5, 0), len(g))))
+        toon_dekking(
+            g.loc[[x for x in getoond if x < len(g)], "totaal"].sum(),
+            g["totaal"].sum(),
+            "België",
+            "De ranglijst gebruikt alle ongevallen, ook die zonder coördinaten; hier zie je enkel de gemeenten uit de drie tabellen.",
+        )
         toon(g.head(5), "Hoogste scores (top 5)")
         toon(g.iloc[max(i - 5, 0) : i + 6], f"Rondom {filt.gemeente} (5 erboven, 5 eronder)")
         toon(g.tail(5), "Laagste scores (onderste 5)")
@@ -191,6 +224,12 @@ def toon_ranglijst(filt):
         g, titel = g[g["gewest"] == filt.gewest], f"Alle gemeenten in {filt.gewest}"
     else:
         titel = "Alle gemeenten in België"
+    toon_dekking(
+        g["totaal"].sum(),
+        g["totaal"].sum(),
+        plaats_label(filt),
+        "Alle ongevallen van deze gemeenten tellen mee, ook die zonder coördinaten.",
+    )
     toon(g, titel)
 
 
@@ -203,17 +242,20 @@ with tab_overzicht:
     if sel.empty:
         st.warning("Geen ongevallen voor deze selectie. Pas de filters aan.")
     else:
-        st.metric("Aantal ongevallen in selectie", f"{len(sel):,}".replace(",", "."))
-        toon_type_overzicht(sel)
+        plaats1 = plaats_label(f1)
+        st.metric("Aantal ongevallen in selectie", nl(len(sel)))
+        toon_type_overzicht(sel, plaats1)
 
         st.subheader("Per jaar, per type")
         st.bar_chart(sel.groupby(["jaar", "class_accident"], observed=True).size().unstack(fill_value=0))
+        toon_dekking(len(sel), len(sel), plaats1, "Alle ongevallen staan in deze grafiek, ook die zonder coördinaten.")
 
     toon_ranglijst(f1)
 
     if not sel.empty:
         with st.expander("Ruwe rijen van de selectie (eerste 1000)"):
             st.dataframe(sel.head(1000), width="stretch", hide_index=True)
+            toon_dekking(min(len(sel), 1000), len(sel), plaats1, "Enkel de eerste 1000 rijen worden getoond.")
 
 # ---------- Tab 2: zwarte punten ----------
 MODUS_VAST = "Vaste locaties, aantallen per jaar"
@@ -243,10 +285,13 @@ def bouw_spots(punten, cluster, gewicht):
     return leden, spots
 
 
-def toon_kaart_en_tabel(spots, kolommen, maat):
+def toon_kaart_en_tabel(spots, kolommen, maat, dek):
+    """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied."""
     kaart = spots.assign(grootte=spots[maat] * 15)  # st.map-grootte is in meter
     st.map(kaart, latitude="lat", longitude="lon", size="grootte")
+    toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
     st.dataframe(spots.reset_index(drop=True)[kolommen], width="stretch", hide_index=True)
+    toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
 
 
 with tab_punten:
@@ -359,13 +404,12 @@ with tab_punten:
 
     basis_kolommen = ["gemeente"] + (["score"] if score_modus else []) + ["totaal", "licht", "zwaar", "doden"]
 
-    toon_type_overzicht(sel)
+    plaats2 = plaats_label(f2)
+    toon_type_overzicht(sel, plaats2)
 
     punten = sel[sel["coord_status"].isin(["ok", "hersteld"])].reset_index(drop=True)
-    st.caption(
-        f"{len(punten):,} van de {len(sel):,} ongevallen in je selectie hebben bruikbare coördinaten "
-        f"(de rest ontbreekt of is fout).".replace(",", ".")
-    )
+    dek = (len(punten), len(sel), plaats2)
+    toon_dekking(*dek, "De rest heeft geen bruikbare coördinaten (ontbreekt of is fout) en staat niet op de kaart.")
     alle_jaren = list(range(jaren[0], jaren[1] + 1))
 
     if punten.empty:
@@ -388,7 +432,7 @@ with tab_punten:
         if spots.empty:
             st.info("Geen zwarte punten met deze drempels. Verlaag een drempel of vergroot de afstand.")
         else:
-            toon_kaart_en_tabel(spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], maat)
+            toon_kaart_en_tabel(spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], maat, dek)
 
             st.subheader("Evolutie van één zwart punt")
             top = spots.head(200)
@@ -406,6 +450,7 @@ with tab_punten:
                 .reindex(alle_jaren, fill_value=0)
             )
             st.bar_chart(evolutie)
+            toon_dekking(*dek, "Enkel ongevallen met bruikbare coördinaten zitten in een zwart punt.")
 
     else:
         delen = []
@@ -430,13 +475,15 @@ with tab_punten:
             st.subheader("Aantal zwarte punten per jaar")
             st.bar_chart(samenvatting["zwarte_punten"])
             st.dataframe(samenvatting, width="stretch")
+            toon_dekking(*dek, "Let op: de dekking verschilt per jaar (zie aanames.txt 3.4), dit is het totaal over de gekozen jaren.")
 
             jaar_keuze = st.select_slider("Toon de zwarte punten van", options=alle_jaren, value=alle_jaren[-1])
             van_jaar = spots[spots["jaar"] == jaar_keuze].sort_values(sorteer, ascending=False)
             if van_jaar.empty:
                 st.info(f"Geen zwarte punten in {jaar_keuze}.")
             else:
-                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], maat)
+                dek_jaar = (int((punten["jaar"] == jaar_keuze).sum()), int((sel["jaar"] == jaar_keuze).sum()), plaats2)
+                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], maat, dek_jaar)
 
 # ---------- Tab 3: foute coördinaten ----------
 with tab_fout:
@@ -454,6 +501,14 @@ with tab_fout:
     status["% bruikbaar"] = ((status["ok"] + status["hersteld"]) / status.sum(axis=1).replace(0, np.nan) * 100).round(1)
     status = status.rename(columns={"ok": "bruikbaar"}).reset_index().rename(columns={"class_accident": "type"})
     st.dataframe(status, width="stretch", hide_index=True)
+    plaats3 = plaats_label(f3)
+    toon_dekking(
+        int(f3.sel["coord_status"].isin(["ok", "hersteld"]).sum()),
+        len(f3.sel),
+        plaats3,
+        "Dit is de verhouding van ongevallen mét bruikbare coördinaten (kolommen bruikbaar + hersteld) tot alle ongevallen "
+        "in de tabel, zoals ook in de kolom % bruikbaar.",
+    )
 
     fout = df[df["coord_status"].isin(["hersteld", "onmogelijk"])]
     st.subheader("Onmogelijke coördinaten in de bron (hersteld)")
@@ -466,6 +521,7 @@ with tab_fout:
         }
         | {c: st.column_config.NumberColumn(format="%.5e") for c in ("x_bron", "y_bron")},
     )
+    toon_dekking(len(fout), len(fout), "België", "Alle ongevallen met een onmogelijke coördinaat in de bron staan in deze tabel.")
 
     st.subheader("Waar staan ze nu?")
     st.markdown(
@@ -510,6 +566,13 @@ with tab_fout:
                 ignore_index=True,
             )
             st.map(punten_kaart, latitude="lat", longitude="lon", color="kleur", size="grootte")
+            van_gemeente = df[df["nis"] == rij["nis"]]
+            toon_dekking(
+                int(van_gemeente["coord_status"].isin(["ok", "hersteld"]).sum()),
+                len(van_gemeente),
+                rij["gemeente"],
+                "Alle jaren en types van deze gemeente; de kaart toont enkel ongevallen met bruikbare coördinaten.",
+            )
 
             st.write(
                 f"Vermoedelijke coördinaat: X = {cx:,.0f}, Y = {cy:,.0f} (Lambert72)\n\n"
@@ -525,3 +588,11 @@ with tab_fout:
                 st.info("Aannemelijk, maar minder zeker: het punt ligt aan de rand van de gemeente, waar weinig ongevallen zijn.")
             else:
                 st.success("Sterk: het punt ligt midden tussen de andere ongevallen van deze gemeente.")
+
+# ---------- Bron (onder alle tabbladen) ----------
+st.divider()
+st.caption(
+    "**Bron:** Statbel, verkeersongevallen (open data), 2017-2024 (bestand OPENDATA_MAP_2017-2024). "
+    "Opgeschoond en bewerkt in dit project: coördinaten omgerekend naar breedte- en lengtegraad en 2 onmogelijke "
+    "waarden hersteld (zie het tabblad Foute coördinaten). Ongevallen zonder bruikbare coördinaten staan niet op de kaart."
+)
