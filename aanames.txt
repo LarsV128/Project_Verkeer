@@ -158,4 +158,6 @@ Definitie in dit project:
 - Verschil tussen code 1 (Met doden) en code 2 (Dodelijk gewonden) navragen.
 - Eerlijk vergelijken over jaren, rekening houdend met de verschillende dekking van de coördinaten (3.4).
 - Eventueel een correctie voor inwonersaantal bij de ranglijst van gemeenten.
-- De hook protect_raw.py verfijnen: hij blokkeert nu ook het lezen met open("data/raw/...").
+
+(Afgewerkt op 2026-11-09: de hook protect_raw.py blokkeert enkel nog schrijven, verwijderen, verplaatsen en kopiëren
+naar data/raw/. Lezen, ook met open("data/raw/...") of shutil.copy vanuit raw, is toegelaten.)

@@ -22,11 +22,42 @@ SCHRIJF_COMMANDO = re.compile(
     re.IGNORECASE,
 )
 OMLEIDING_NAAR_RAW = re.compile(r">>?\s*['\"]?(?:\.[/\\])?data[/\\]raw[/\\]", re.IGNORECASE)
-PYTHON_SCHRIJF_NAAR_RAW = re.compile(
-    r"(to_csv|to_excel|to_parquet|to_json|write_text|write_bytes|savefig|"
-    r"open|copy|copyfile|move|remove|unlink|rename)\s*\([^)]*data[/\\]raw[/\\]",
+
+# Python-code in een commando. We bekijken per functieaanroep de argumenten tussen haakjes.
+PYTHON_AANROEP = re.compile(r"\b(\w+)\s*\(([^()]*)\)")
+# Altijd schrijven/verwijderen: een raw-pad in de argumenten is genoeg om te blokkeren.
+PYTHON_SCHRIJVERS = {
+    "to_csv", "to_excel", "to_parquet", "to_json", "to_pickle", "to_feather", "write_text", "write_bytes",
+    "savefig", "remove", "unlink", "rmtree", "rename", "replace", "move",
+}
+PYTHON_KOPIE = {"copy", "copy2", "copyfile", "copytree"}  # lezen uit raw mag; enkel de bestemming telt
+SCHRIJFMODUS = re.compile(r"""['"][^'"]*[wax+][^'"]*['"]""", re.IGNORECASE)
+# Path("data/raw/x").unlink() e.d.: de methode staat NA het raw-pad
+RAW_PAD_METHODE = re.compile(
+    r"""data[/\\]raw[/\\][^'"]*['"]\s*\)\s*\.\s*(unlink|write_text|write_bytes|rename|replace|touch|rmdir|open)\s*\(""",
     re.IGNORECASE,
 )
+
+
+def python_schrijft_in_raw(commando):
+    """True als python-code in het commando iets naar data/raw/ schrijft, kopieert of verwijdert."""
+    for m in PYTHON_AANROEP.finditer(commando):
+        naam, args = m.group(1).lower(), m.group(2)
+        if not re.search(RAW_PAD, args, re.IGNORECASE):
+            continue
+        if naam in PYTHON_SCHRIJVERS:
+            return True
+        if naam == "open":  # open(pad) of open(pad, "r") leest enkel; kijk dus niet naar het pad zelf
+            delen = args.split(",")
+            modus = [d for d in delen[1:2] if "=" not in d] + [d for d in delen[1:] if re.match(r"\s*mode\s*=", d)]
+            if any(SCHRIJFMODUS.search(d) for d in modus):
+                return True
+        if naam in PYTHON_KOPIE:
+            delen = args.split(",", 1)
+            if len(delen) == 2 and re.search(RAW_PAD, delen[1], re.IGNORECASE):
+                return True
+    meth = RAW_PAD_METHODE.search(commando)
+    return bool(meth and meth.group(1).lower() != "open")
 
 
 def in_raw(pad, project_dir):
@@ -46,7 +77,7 @@ def bash_schrijft_in_raw(commando):
     return bool(
         SCHRIJF_COMMANDO.search(commando)
         or OMLEIDING_NAAR_RAW.search(commando)
-        or PYTHON_SCHRIJF_NAAR_RAW.search(commando)
+        or python_schrijft_in_raw(commando)
     )
 
 

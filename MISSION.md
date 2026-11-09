@@ -59,6 +59,5 @@ kunnen worden uitgelegd.
 - [ ] De **officiële definitie van "zwart punt"** opzoeken en onze definitie daarop afstemmen.
 - [ ] Het verschil tussen "Met doden" (code 1) en "Dodelijk gewonden" (code 2) navragen; nu samengevoegd.
 - [ ] **Eerlijk vergelijken over de jaren:** rekening houden met de verschillende dekking van de coördinaten.
-- [ ] De hook `protect_raw.py` verfijnen: hij blokkeert nu ook het lezen met `open("data/raw/...")`.
-- [ ] Eventueel een correctie voor inwonersaantal bij de ranglijst (extern bestand nodig) en de evolutie van zwarte punten onderzoeken.
+- [x] De hook `protect_raw.py` verfijnen (2026-11-09): lezen uit `data/raw/` mag nu (`open(pad)`, `open(pad, "r")`, `shutil.copy` met raw als bron); schrijven, verwijderen, verplaatsen en kopiëren *naar* raw blijft geblokkeerd, ook via `Path(...).unlink()`.
 - [ ] De keuzes in het beslissingslogboek zetten (`/timtim:logboek`).
