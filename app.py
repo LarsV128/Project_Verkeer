@@ -18,8 +18,8 @@ DATA = Path(__file__).parent / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
 # class_accident_code -> groep voor de scores en zwarte punten
 LICHT, ZWAAR, DODEN = [4], [3], [1, 2]
 
-st.set_page_config(page_title="Zwart Punten (Officieus)", layout="wide", initial_sidebar_state="collapsed")
-st.title("Zwart Punten (Officieus)")
+st.set_page_config(page_title="Ongevallen", layout="wide", initial_sidebar_state="collapsed")
+st.title("Ongevallen")
 
 
 @st.cache_data

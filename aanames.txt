@@ -213,7 +213,7 @@ Definitie in dit project:
 
 7. FILTERS EN WEERGAVE
 ----------------------
-- De app heet "Zwart Punten (Officieus)" (voorheen "Zwarte Punten") en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (Het tabblad
+- De app heet "Ongevallen" (voorheen "Zwart Punten (Officieus)" en "Zwarte Punten") en heeft 3 tabbladen, in deze volgorde: "Kaart", "Evolutie" en "Data View". (Het tabblad
   "Kaart" heette eerst "Zwarte punten"; het tabblad "Overzicht" heet nu "Data View"; het tabblad "Foute coördinaten"
   is onderaan "Data View" gezet.)
 - TABBLAD "EVOLUTIE" (sinds 2026-11-09): 3 lijngrafieken met het aantal zwarte punten per periode van 3 jaar. De punten
