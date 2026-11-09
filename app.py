@@ -283,23 +283,28 @@ with tab_data:
                 "Klik op een kolomkop om te sorteren, gebruik het zoekicoon rechtsboven de tabel om te zoeken en het "
                 "pijltje om de tabel schermvullend te zien."
             )
-            kolommen_kiezen = st.multiselect("Kolommen", list(sel.columns), default=list(sel.columns), key="viewer_kolommen")
+            # Kolommen blijven allemaal zichtbaar; je filtert op de waarden van een kolom (bv. jaar 2022, gemeente Herentals).
+            filterbaar = [c for c in sel.columns if c not in ("x_lambert72", "y_lambert72", "x_bron", "y_bron", "lat", "lon")]
+            filter_kolommen = st.multiselect("Filter op kolom", filterbaar, key="viewer_filter_kolommen")
+            getoond = sel
+            for kolom in filter_kolommen:
+                opties = sorted(sel[kolom].dropna().unique().tolist())
+                gekozen = st.multiselect(f"{kolom}: waarde(n)", opties, key=f"viewer_waarde_{kolom}")
+                if gekozen:
+                    getoond = getoond[getoond[kolom].isin(gekozen)]
+            st.caption(f"{nl(len(getoond))} van {nl(len(sel))} ongevallen van de selectie.")
             st.dataframe(
-                sel[kolommen_kiezen],
+                getoond,
                 width="stretch",
                 height=450,
                 hide_index=True,
                 column_config={c: st.column_config.NumberColumn(format="%.1f") for c in ("x_lambert72", "y_lambert72")}
                 | {c: st.column_config.NumberColumn(format="%.5e") for c in ("x_bron", "y_bron")},
             )
-            toon_dekking(len(sel), len(sel), plaats1, "Alle rijen van de selectie staan in deze tabel.")
+            toon_dekking(len(getoond), len(sel), plaats1, "Zonder filter in deze lijst staan alle rijen van de selectie in de tabel.")
 
         st.metric("Aantal ongevallen in selectie", nl(len(sel)))
         toon_type_overzicht(sel, plaats1)
-
-        st.subheader("Per jaar, per type")
-        st.bar_chart(sel.groupby(["jaar", "class_accident"], observed=True).size().unstack(fill_value=0))
-        toon_dekking(len(sel), len(sel), plaats1, "Alle ongevallen staan in deze grafiek, ook die zonder coördinaten.")
 
     toon_ranglijst(f1)
 

@@ -277,9 +277,10 @@ Definitie in dit project:
   liggen. Vroeger werd enkel gezocht onder de ongevallen van het gekozen gebied; bij een punt op een grens kan dat
   een ander resultaat geven. De verhouding weergegeven/totaal onder de kaart blijft voor het gekozen gebied.
 - Tabblad "Data View" van boven naar onder: filters, uitklapbare "Data viewer" (alle rijen van de selectie, geen
-  limiet meer van 1000, met sorteren, zoeken en een kolomkeuze), aantal ongevallen, overzicht per type, grafiek per
-  jaar en type, ranglijst van gemeenten, en onderaan "Foute coördinaten" (status per type, de herstelde waarden en
-  de kaarten).
+  limiet meer van 1000, met sorteren, zoeken en filteren op de waarden van een kolom, bv. jaar 2022 en gemeente
+  Herentals; kolommen verbergen kan niet meer), aantal ongevallen, overzicht per type, ranglijst van gemeenten, en
+  onderaan "Foute coördinaten" (status per type, de herstelde waarden, de hele bronrijen en de kaarten) en "Zwarte
+  punten op een grens". De grafiek per jaar en type is verwijderd.
 - Er is geen zijbalk meer. De instellingen voor puntenscore en extra voorwaarden staan in het tandwiel in het tabblad
   "Kaart".
 - Het tabblad "Foute coördinaten" gebruikt nu de filters van "Data View" (niet langer eigen filters) voor de tabel
