@@ -157,6 +157,10 @@ Definitie in dit project:
   tandwiel; twee zwarte punten liggen minstens die afstand uit elkaar, dus hun cirkels kunnen overlappen. Een ongeval hoort bij maximaal één zwart punt: het sterkste punt neemt zijn
   ongevallen weg (zie hierboven) en de rest van de buur wordt opnieuw geteld. Haalt die rest de drempel niet meer, dan
   is er geen tweede bol.
+- Code per zwart punt: de eerste 3 letters van de gemeente plus het clusternummer, bv. ANT-006 (functie punt_code in
+  app.py). Het nummer is de volgorde waarin het punt gevonden werd (hoogste telling eerst) en verandert dus als je
+  periode of instellingen wijzigt. De code staat als eerste kolom in de tabel en in de hover op de kaart (met
+  pydeck: code, gemeente, score en aantal ongevallen). Klikken op een bol toont ook het ingezoomde zicht.
 - Kaart, ingezoomd zicht per zwart punt: vlak onder de grote kaart in het tabblad "Kaart" staat een keuzelijst
   "Gemeente" (typbaar; filtert op de gemeente waar de meeste ongevallen van het punt liggen) en een tabel van 5 rijen
   (scrollbaar) met de zwarte punten; klik op een rij. Daaronder verschijnt een ingezoomde kaart met de individuele ongevallen van dat punt (geel = lichtgewonden, oranje =

@@ -11,3 +11,6 @@ __pycache__/
 
 # Geheimen
 .env
+
+# Virtuele omgeving met extra pakketten voor dit project (enkel pydeck)
+.venv/

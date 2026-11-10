@@ -13,6 +13,11 @@ import streamlit as st
 from pyproj import Transformer
 from scipy.spatial import cKDTree
 
+try:
+    import pydeck as pdk  # kaart met hover en klik; staat in .venv en requirements.txt, niet in syntra-ds
+except ImportError:
+    pdk = None  # zonder pydeck valt de kaart terug op de gewone st.map (zonder hover)
+
 DATA = Path(__file__).parent / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
 
 # class_accident_code -> groep voor de scores en zwarte punten
@@ -316,6 +321,13 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
             st.table(stijl)
 
 
+def punt_code(gemeente, punt_id):
+    """Korte code van een zwart punt, bv. ANT-006: de eerste 3 letters van de gemeente plus het clusternummer.
+
+    Het nummer is de volgorde waarin het punt gevonden werd; het verandert als je periode of instellingen wijzigt."""
+    return f"{str(gemeente)[:3].upper()}-{int(punt_id):03d}"
+
+
 # Kleur van een individueel ongeval in het ingezoomde zicht van een zwart punt (class_accident_code -> kleur)
 ERNST_KLEUREN = [("lichtgewonden", "#f2c200", LICHT), ("zwaargewonden", "#ff7f0e", ZWAAR), ("doden", "#d62728", DODEN)]
 
@@ -353,14 +365,45 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     Elke cirkel heeft als straal de zoekafstand (`straal`, instelling in het tandwiel); de kleur toont de score
     volgens vaste klassen. Vlak onder de kaart staat de keuze van één zwart punt (gemeente, sortering, tabel van
     5 rijen); het ingezoomde zicht van het aangeklikte punt staat daaronder."""
-    kaart = spots[["lat", "lon"]].assign(kleur=spots["score"].map(score_kleur))
-    st.map(kaart, latitude="lat", longitude="lon", color="kleur", size=straal)
-    toon_legende()
-    toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
-
     # Het clusternummer zit in de kolom `cluster` (Elk jaar apart) of in de index (Vaste locaties)
     ids = spots["cluster"] if "cluster" in spots.columns else spots.index.to_series()
     tabel = spots.assign(punt_id=ids.to_numpy())
+    tabel["code"] = [punt_code(g, i) for g, i in zip(tabel["gemeente"], tabel["punt_id"])]
+    kolommen = ["code"] + kolommen
+
+    kaart_klik = None  # id van het zwarte punt dat je op de kaart aanklikt
+    if pdk is None:
+        st.map(tabel[["lat", "lon"]].assign(kleur=tabel["score"].map(score_kleur)), latitude="lat", longitude="lon", color="kleur", size=straal)
+    else:
+        bollen = tabel[["lat", "lon", "code", "gemeente", "score", "totaal", "punt_id"]].assign(
+            kleur=tabel["score"].map(lambda s: [int(score_kleur(s)[i : i + 2], 16) for i in (1, 3, 5)] + [200]),
+            score=tabel["score"].round(0).astype(int),
+        )
+        laag = pdk.Layer(
+            "ScatterplotLayer",
+            data=bollen,
+            id="punten",
+            get_position="[lon, lat]",
+            get_radius=straal,
+            radius_units="meters",
+            get_fill_color="kleur",
+            get_line_color=[80, 80, 80],
+            stroked=True,
+            line_width_min_pixels=1,
+            pickable=True,
+            auto_highlight=True,
+        )
+        deck = pdk.Deck(
+            layers=[laag],
+            initial_view_state=pdk.data_utils.compute_view(bollen[["lon", "lat"]].to_numpy().tolist(), 0.95),
+            tooltip={"text": "{code}\n{gemeente}\nScore {score} · {totaal} ongevallen"},
+        )
+        klik = st.pydeck_chart(deck, on_select="rerun", selection_mode="single-object", key="kaart_punten")
+        gekozen_op_kaart = klik.selection.objects.get("punten", []) if klik else []
+        if gekozen_op_kaart:
+            kaart_klik = gekozen_op_kaart[0]["punt_id"]
+    toon_legende()
+    toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
     st.subheader("Selectie Zwart Punt")
     kies_gemeente, kies_sorteer = st.columns([2, 1])
     gemeente = kies_gemeente.selectbox(
@@ -391,10 +434,12 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
         selection_mode="single-row",
         key="tabel_punten",
     )
-    st.caption(f"{len(tabel)} zwarte punten. Klik op een rij om dat punt ingezoomd hieronder te zien.")
+    st.caption(f"{len(tabel)} zwarte punten. Klik op een rij (of op een bol op de kaart) om dat punt ingezoomd hieronder te zien.")
     rijen = gekozen.selection.rows
     if rijen and rijen[0] < len(tabel):
         toon_punt_detail(leden, tabel.at[rijen[0], "punt_id"])
+    elif kaart_klik is not None:
+        toon_punt_detail(leden, kaart_klik)
     if onder_kaart:
         onder_kaart()
     toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
