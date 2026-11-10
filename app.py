@@ -68,16 +68,19 @@ def zoek_clusters(x, y, gewicht, straal, drempel):
 
 import clean_data
 
-# Opgeschoonde data ontbreekt of is ouder dan de ruwe data of het cleaningscript? Dan eerst opnieuw maken.
-if not DATA.exists() or DATA.stat().st_mtime < max(
-    clean_data.RAW.stat().st_mtime if clean_data.RAW.exists() else 0,
-    Path(clean_data.__file__).stat().st_mtime,
+RAW_AANWEZIG = clean_data.RAW.exists()  # op Streamlit Cloud niet: de ruwe data staat niet in git, de parquet wel
+
+# Ruwe data aanwezig, en de opgeschoonde data ontbreekt of is ouder dan de ruwe data of het cleaningscript? Dan opnieuw maken.
+# Zonder ruwe data gebruiken we de parquet zoals ze is (bestandstijden na een git clone zeggen niets).
+if RAW_AANWEZIG and (
+    not DATA.exists()
+    or DATA.stat().st_mtime < max(clean_data.RAW.stat().st_mtime, Path(clean_data.__file__).stat().st_mtime)
 ):
-    if not clean_data.RAW.exists():
-        st.error(f"Ruwe data niet gevonden. Plaats OPENDATA_MAP_2017-2024.txt in `{clean_data.RAW.parent}`.")
-        st.stop()
     with st.spinner("Data opschonen uit data/raw (enkele minuten, enkel de eerste keer)..."):
         clean_data.main()
+elif not DATA.exists():
+    st.error(f"Opgeschoonde data niet gevonden en ook geen ruwe data. Plaats OPENDATA_MAP_2017-2024.txt in `{clean_data.RAW.parent}`.")
+    st.stop()
 
 df = laad_data(DATA.stat().st_mtime)
 
@@ -946,10 +949,13 @@ with tab_data:
         "Alle kolommen van de rijen in `data/raw/OPENDATA_MAP_2017-2024.txt`, zoals ze in de bron staan (onaangeroerd, enkel "
         "gelezen). Zo kan je de coördinaten en de gemeente naast de rest van het ongeval leggen."
     )
-    bron = bronrijen(tuple(int(i) for i in fout.index), clean_data.RAW.stat().st_mtime)
-    bron.index = [f"{g} (rij {i})" for g, i in zip(fout["gemeente"], fout.index)]
-    st.dataframe(bron.T, width="stretch")
-    toon_dekking(len(bron), len(fout), "België", "Alle ongevallen uit de tabel hierboven staan ook hier, met alle bronkolommen.")
+    if RAW_AANWEZIG:
+        bron = bronrijen(tuple(int(i) for i in fout.index), clean_data.RAW.stat().st_mtime)
+        bron.index = [f"{g} (rij {i})" for g, i in zip(fout["gemeente"], fout.index)]
+        st.dataframe(bron.T, width="stretch")
+        toon_dekking(len(bron), len(fout), "België", "Alle ongevallen uit de tabel hierboven staan ook hier, met alle bronkolommen.")
+    else:
+        st.info("De ruwe data staat niet online (te groot voor GitHub); deze tabel is enkel zichtbaar in de lokale versie.")
 
     st.subheader("Waar staan ze nu?")
     st.markdown(

@@ -11,7 +11,7 @@
 - Opgeschoonde data gaat in `data/`, nooit terug in `data/raw/`.
 - Naamgeving: `<bronnaam>_clean.<ext>`, bv. `data/OPENDATA_MAP_2017-2024_clean.csv`. Tussenstappen krijgen een beschrijvend achtervoegsel (`_clean_geo`, ...). Geen `final2`, `nieuw`, `kopie`.
 - Houd de cleaning reproduceerbaar: een script of notebook leest uit `data/raw/` en schrijft naar `data/`.
-- De huidige opgeschoonde data is `data/OPENDATA_MAP_2017-2024_clean.parquet`, gemaakt met `python clean_data.py`. De app voert dit script zelf uit als de parquet ontbreekt of ouder is dan `data/raw/` of het script; de parquet staat niet in git. Bij elke wijziging in de cleaning: script opnieuw uitvoeren en `aanames.txt` bijwerken.
+- De huidige opgeschoonde data is `data/OPENDATA_MAP_2017-2024_clean.parquet`, gemaakt met `python clean_data.py`. De app voert dit script zelf uit als `data/raw/` aanwezig is en de parquet ontbreekt of ouder is dan `data/raw/` of het script; zonder `data/raw/` (Streamlit Cloud) leest hij gewoon de parquet. **De parquet staat sinds 2026-11-10 wel in git** (9 MB, nodig voor Streamlit Cloud, `requirements.txt` staat in de repo). Bij elke wijziging in de cleaning: script opnieuw uitvoeren, `aanames.txt` bijwerken en de nieuwe parquet mee committen.
 
 ## Bestanden in dit project
 - `app.py`: Streamlit-app (`streamlit run app.py --server.port 1234`), (de app heet "Ongevallen"), met de tabbladen Kaart, Evolutie (lijngrafieken per periode van 3 jaar) en Data View (met onderaan de foute coördinaten). Geen zijbalk; filters staan bovenaan elk tabblad, alle andere instellingen van Kaart in het tandwiel.

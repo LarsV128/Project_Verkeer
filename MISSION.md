@@ -10,7 +10,7 @@ kunnen worden uitgelegd.
 
 ## Werkprincipes
 - **De ruwe data is heilig.** Niets in `data/raw/` wordt ooit gewijzigd; een hook (`.claude/hooks/protect_raw.py`) blokkeert dat.
-- **Opgeschoonde data staat in `data/`**, met de naam `<bronnaam>_clean.<ext>`. De cleaning is reproduceerbaar via `clean_data.py` (data/raw → data). De app voert dit script zelf uit als de parquet ontbreekt of verouderd is; de parquet staat niet in git.
+- **Opgeschoonde data staat in `data/`**, met de naam `<bronnaam>_clean.<ext>`. De cleaning is reproduceerbaar via `clean_data.py` (data/raw → data). De app voert dit script zelf uit als de parquet ontbreekt of verouderd is (en de ruwe data aanwezig is). De parquet staat sinds 2026-11-10 wel in git, zodat de app op Streamlit Cloud draait zonder de ruwe data.
 - **We werken samen:** eerst vragen en afspreken, dan pas wijzigen (zie `CLAUDE.md`).
 - **Aannames zijn expliciet.** Elke keuze die een uitkomst kan veranderen, staat in `aanames.txt` en in het beslissingslogboek.
 - **Eerst controleren, dan vertrouwen:** cijfers rekenen we uit, en onverwachte resultaten (zoals de foute coördinaten) onderzoeken we.

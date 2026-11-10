@@ -2,8 +2,8 @@
 data/raw/*
 !data/raw/.gitkeep
 
-# Opgeschoonde data is reproduceerbaar met: python clean_data.py
-data/*_clean*.parquet
+# De opgeschoonde parquet (9 MB) staat wel in git: Streamlit Cloud heeft de ruwe data niet en leest enkel de parquet.
+# Ze is reproduceerbaar met: python clean_data.py
 
 # Python
 __pycache__/
