@@ -3,7 +3,7 @@
 > Bijgewerkt op 2026-11-09. Alle details en getallen staan uitgeschreven in [`aanames.txt`](aanames.txt).
 
 ## Missie
-Verkeersongevallen in België (2017-2024) verkennen en begrijpen: waar, wanneer en met welke afloop ze gebeuren.
+Centrale vraag : Is er een verbetering in aantal Zwarte Punten te zien in België, Gewesten, Provincies?
 We zoeken de plaatsen waar ongevallen zich opstapelen ("zwarte punten") en onderzoeken later hoe die zich per jaar
 ontwikkelen. Elke bewering in dit project moet met echte cijfers uit de data kunnen worden onderbouwd en zonder AI
 kunnen worden uitgelegd.
