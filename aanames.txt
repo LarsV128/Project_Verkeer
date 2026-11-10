@@ -153,6 +153,16 @@ Definitie in dit project:
   Eronder staat een lijst met alle zwarte punten die ongevallen uit meer dan één gemeente bevatten (22 met de
   standaardinstellingen), gesorteerd op score. Kies je er één, dan zie je een ingezoomde kaart met alle ongevallen die
   meetellen, een kleur per gemeente (met aantallen), en een tabel met hun coördinaten.
+- Waarom overlappen bollen soms zonder één zwart punt te zijn? De cirkel op de kaart heeft als straal de zoekafstand uit het
+  tandwiel; twee zwarte punten liggen minstens die afstand uit elkaar, dus hun cirkels kunnen overlappen. Een ongeval hoort bij maximaal één zwart punt: het sterkste punt neemt zijn
+  ongevallen weg (zie hierboven) en de rest van de buur wordt opnieuw geteld. Haalt die rest de drempel niet meer, dan
+  is er geen tweede bol.
+- Kaart, ingezoomd zicht per zwart punt: vlak onder de grote kaart in het tabblad "Kaart" staat een keuzelijst
+  "Gemeente" (typbaar; filtert op de gemeente waar de meeste ongevallen van het punt liggen) en een tabel van 5 rijen
+  (scrollbaar) met de zwarte punten; klik op een rij. Daaronder verschijnt een ingezoomde kaart met de individuele ongevallen van dat punt (geel = lichtgewonden, oranje =
+  zwaargewonden, rood = doden incl. dodelijk gewonden) en een tabel. Naast de keuzelijst kies je "Sorteer op" Score
+  (score, bij gelijke stand meeste doden, dan meeste zwaargewonden; bij de methode "Aantal ongevallen" eerst het aantal) of Locatie (per gemeente, daarbinnen van noord naar zuid; geen
+  echte nabijheid, aangrenzende punten over een gemeentegrens kunnen dus gescheiden staan).
 
 5.2 Instellingen (tabblad "Kaart")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
@@ -180,8 +190,10 @@ Definitie in dit project:
   locatie en krijgt een kolom per jaar. (De grafiek "Evolutie van één zwart punt" is op 2026-11-09 verwijderd.)
 - Weergave "Elk jaar apart": per jaar een eigen zoektocht. Een plek kan in het ene jaar een zwart punt zijn en in het
   andere niet; punten van verschillende jaren liggen niet exact op dezelfde plek.
-- Kaart: elk zwart punt is een even grote cirkel (60 m, constante CIRKEL_STRAAL in app.py) op het gemiddelde van de
-  coördinaten van zijn ongevallen. De cirkel duidt enkel de locatie aan.
+- Kaart: elk zwart punt is een even grote cirkel met als straal de gekozen zoekafstand (instelling "Afstand") op het
+  gemiddelde van de coördinaten van zijn ongevallen. Cirkels kunnen toch overlappen: de ongevallen van een punt liggen
+  binnen de afstand van zijn sterkste ongeval (niet van het gemiddelde), en twee zwarte punten liggen enkel méér dan
+  die afstand uit elkaar, niet méér dan twee keer die afstand.
   KLEUR = SCORE, met een vaste schaal die overal hetzelfde is (elk tabblad, weergave, periode, gebied en instelling;
   constante KLEURKLASSEN in app.py) en een legende onder elke kaart:
       minder dan 20 = dof geel (#fbe2af) · 20-24 = dof oranje (#fdac7a) · 25-29 = zalm (#f6736b) ·

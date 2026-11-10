@@ -344,7 +344,6 @@ def bouw_spots(punten, cluster):
     return leden, spots
 
 
-CIRKEL_STRAAL = 60  # meter; elk zwart punt is even groot, de cirkel duidt enkel de locatie aan
 
 # Vaste kleurschaal voor de score van een zwart punt, overal dezelfde (elk tabblad, weergave, periode en gebied):
 # (ondergrens, kleur, label). De grenzen volgen de verdeling van de scores: de meeste punten liggen tussen 15 en 25.
@@ -435,18 +434,87 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
             st.table(stijl)
 
 
-def toon_kaart_en_tabel(spots, kolommen, dek, onder_kaart=None):
+# Kleur van een individueel ongeval in het ingezoomde zicht van een zwart punt (class_accident_code -> kleur)
+ERNST_KLEUREN = [("lichtgewonden", "#f2c200", LICHT), ("zwaargewonden", "#ff7f0e", ZWAAR), ("doden", "#d62728", DODEN)]
+
+
+def toon_punt_detail(leden, punt_id):
+    """Ingezoomde kaart en tabel van de ongevallen in één zwart punt.
+
+    `leden` = de ongevallen in zwarte punten (kolom `cluster`), `punt_id` = het clusternummer."""
+    ongevallen = leden[leden["cluster"] == punt_id].sort_values(["jaar", "maand"])
+    kleur_van_code = {c: k for _, k, codes in ERNST_KLEUREN for c in codes}
+    ongevallen = ongevallen.assign(kleur=ongevallen["class_accident_code"].astype(int).map(kleur_van_code).fillna("#888888"))
+    st.subheader(f"Ingezoomd: zwart punt in {ongevallen['gemeente'].value_counts().index[0]}")
+    st.markdown(
+        " &nbsp;·&nbsp; ".join(
+            f"<span style='color:{k}; font-size:1.2em'>●</span> {naam} ({int(ongevallen['class_accident_code'].astype(int).isin(codes).sum())})"
+            for naam, k, codes in ERNST_KLEUREN
+        ),
+        unsafe_allow_html=True,
+    )
+    st.map(ongevallen, latitude="lat", longitude="lon", color="kleur", size=3)
+    st.dataframe(
+        ongevallen[["gemeente", "jaar", "maand", "uur", "class_accident", "x_lambert72", "y_lambert72", "lat", "lon"]],
+        width="stretch",
+        hide_index=True,
+        column_config={c: st.column_config.NumberColumn(format="%.1f") for c in ("x_lambert72", "y_lambert72")}
+        | {c: st.column_config.NumberColumn(format="%.6f") for c in ("lat", "lon")},
+    )
+    toon_dekking(len(ongevallen), len(ongevallen), "dit zwarte punt", "Alle ongevallen die bij dit zwarte punt tellen staan op de kaart en in de tabel.")
+
+
+def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied.
+    `leden` = de individuele ongevallen van deze zwarte punten (kolom `cluster`).
     `onder_kaart` is een functie die direct onder de kaart iets toont (hier: de telling per gebied).
 
-    Alle cirkels zijn even groot (ze duiden de locatie aan); de kleur toont de score volgens vaste klassen."""
+    Elke cirkel heeft als straal de zoekafstand (`straal`, instelling in het tandwiel); de kleur toont de score
+    volgens vaste klassen. Vlak onder de kaart staat de keuze van één zwart punt (gemeente, sortering, tabel van
+    5 rijen); het ingezoomde zicht van het aangeklikte punt staat daaronder."""
     kaart = spots[["lat", "lon"]].assign(kleur=spots["score"].map(score_kleur))
-    st.map(kaart, latitude="lat", longitude="lon", color="kleur", size=CIRKEL_STRAAL)
+    st.map(kaart, latitude="lat", longitude="lon", color="kleur", size=straal)
     toon_legende()
     toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
+
+    # Het clusternummer zit in de kolom `cluster` (Elk jaar apart) of in de index (Vaste locaties)
+    ids = spots["cluster"] if "cluster" in spots.columns else spots.index.to_series()
+    tabel = spots.assign(punt_id=ids.to_numpy())
+    kies_gemeente, kies_sorteer = st.columns([2, 1])
+    gemeente = kies_gemeente.selectbox(
+        "Gemeente (typ om te zoeken)",
+        ["Alle gemeenten"] + sorted(tabel["gemeente"].astype(str).unique()),
+        key="punt_gemeente",
+        help="Toont in de tabel hieronder enkel de zwarte punten van deze gemeente (de gemeente waar de meeste ongevallen van het punt liggen).",
+    )
+    sortering = kies_sorteer.radio(
+        "Sorteer op",
+        ["Score", "Locatie"],
+        horizontal=True,
+        help="Score: hoogste score eerst. Locatie: per gemeente, binnen een gemeente van noord naar zuid, zodat "
+        "aangrenzende punten meestal onder elkaar staan.",
+        key="sorteer_punten",
+    )
+    if gemeente != "Alle gemeenten":
+        tabel = tabel[tabel["gemeente"].astype(str) == gemeente]
+    if sortering == "Locatie":
+        tabel = tabel.sort_values(["gemeente", "lat"], ascending=[True, False])
+    tabel = tabel.reset_index(drop=True)
+    gekozen = st.dataframe(
+        tabel[kolommen],
+        width="stretch",
+        height=5 * 35 + 38,  # kopregel + 5 rijen; scroll voor de rest
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="tabel_punten",
+    )
+    st.caption(f"{len(tabel)} zwarte punten. Klik op een rij om dat punt ingezoomd hieronder te zien.")
+    rijen = gekozen.selection.rows
+    if rijen and rijen[0] < len(tabel):
+        toon_punt_detail(leden, tabel.at[rijen[0], "punt_id"])
     if onder_kaart:
         onder_kaart()
-    st.dataframe(spots.reset_index(drop=True)[kolommen], width="stretch", hide_index=True)
     toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
 
 
@@ -572,14 +640,15 @@ with tab_punten:
         spots_nl = voldoet(spots_nl).join(per_jaar)
     else:
         delen = []
+        leden_per_jaar = {}  # de individuele ongevallen per jaar, voor het ingezoomde zicht van een punt
         for jaar in alle_jaren:
             pj = punten_nl[punten_nl["jaar"] == jaar].reset_index(drop=True)
             if pj.empty:
                 continue
             w = gewichten(pj)
             cluster = zoek_clusters(pj["x_lambert72"].to_numpy(), pj["y_lambert72"].to_numpy(), w, straal, drempel)
-            _, spots_jaar = bouw_spots(pj, cluster)
-            delen.append(voldoet(spots_jaar).assign(jaar=jaar))
+            leden_per_jaar[jaar], spots_jaar = bouw_spots(pj, cluster)
+            delen.append(voldoet(spots_jaar).assign(jaar=jaar, cluster=lambda d: d.index))
         spots_nl = pd.concat(delen, ignore_index=True) if delen else pd.DataFrame()
 
     def telling_onder_kaart():
@@ -603,7 +672,7 @@ with tab_punten:
             telling_onder_kaart()
         else:
             toon_kaart_en_tabel(
-                spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], dek, onder_kaart=telling_onder_kaart
+                spots, basis_kolommen + list(per_jaar.columns) + ["lat", "lon"], dek, leden, straal, onder_kaart=telling_onder_kaart
             )
 
     else:
@@ -628,7 +697,9 @@ with tab_punten:
                 telling_onder_kaart()
             else:
                 dek_jaar = (int((punten["jaar"] == jaar_keuze).sum()), int((sel["jaar"] == jaar_keuze).sum()), plaats2)
-                toon_kaart_en_tabel(van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar, onder_kaart=telling_onder_kaart)
+                toon_kaart_en_tabel(
+                    van_jaar, basis_kolommen + ["lat", "lon"], dek_jaar, leden_per_jaar[jaar_keuze], straal, onder_kaart=telling_onder_kaart
+                )
 
     # Uitleg en gekozen instellingen staan onder de kaart, zodat boven de kaart enkel de tabel staat.
     with st.expander("ℹ️ Uitleg en gekozen instellingen"):
