@@ -238,6 +238,11 @@ Definitie in dit project:
     op samenvallende plekken ook op elkaar (de hover toont dan de bovenste reeks); de streeplengte (6 pixels) is opmaak.
   * Periode: 3 jaar, op de x-as benoemd naar het EINDJAAR: 2019 = 2017-2019, 2020 = 2018-2020, ..., 2024 = 2022-2024
     (6 punten). De volledige periode staat in de hover.
+  * Dekkingslijn (sinds 2026-11-10): in alle 3 grafieken staat een dofgrijze stippellijn op een eigen as rechts (0-100 %):
+    het % ongevallen met bruikbare coördinaten (ok + hersteld) van ALLE ongevallen in HEEL BELGIË. Per jaar wordt het %
+    berekend en per periode van 3 jaar nemen we het GEMIDDELDE van die 3 percentages (elk jaar even zwaar, dus niet
+    gewogen naar het aantal ongevallen). Voorbeeld 2019 = 2017-2019: (84,7 + 83,2 + 82,8) / 3 = 83,6. Dezelfde lijn in elke grafiek, ook bij de provincies en
+    ongeacht welke reeksen aanstaan. Staat niet in de legende en reageert niet op de legende; de waarde staat in de hover.
   * Per periode worden de zwarte punten opnieuw gezocht in heel België met DEZELFDE INSTELLINGEN als in het tandwiel van
     het tabblad Kaart (afstand, methode, punten, drempel, minimum ongevallen en extra voorwaarden), altijd als "vaste
     locaties" (ook als je in de Kaart "Elk jaar apart" kiest). Verander je het tandwiel, dan veranderen de grafieken mee.

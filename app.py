@@ -668,7 +668,7 @@ GEWEST_NAAM = {"Vlaams Gewest": "Vlaanderen", "Brussels Hoofdstedelijk Gewest": 
 STREEP = 6  # lengte van een streepje in pixels (alleen opmaak)
 
 
-def toon_lijngrafiek(titel, reeksen, periodes):
+def toon_lijngrafiek(titel, reeksen, periodes, dekking=None):
     """Lijngrafiek met de punten verbonden. `reeksen` = {naam: [aantal per periode]}, `periodes` = [(eindjaar, begin), ...].
 
     De periode staat op de x-as met het eindjaar (2019 = 2017-2019); de volledige periode staat in de hover.
@@ -676,7 +676,10 @@ def toon_lijngrafiek(titel, reeksen, periodes):
     Stippellijn-regel (automatisch, per lijnstuk tussen twee opeenvolgende periodes): hebben twee of meer ZICHTBARE reeksen in
     dezelfde grafiek hetzelfde beginpunt EN hetzelfde eindpunt, dan bedekken hun stukken elkaar en worden ze gestippeld, met
     de streepjes om en om zodat je ze allemaal ziet. Kruisen lijnen elkaar enkel, dan blijven ze doorlopend.
-    Klik je een reeks in de legende uit, dan wordt de overlap opnieuw bekeken (in de grafiek zelf, niet in Python)."""
+    Klik je een reeks in de legende uit, dan wordt de overlap opnieuw bekeken (in de grafiek zelf, niet in Python).
+
+    `dekking` = [% ongevallen met bruikbare coördinaten per periode, heel België]: wordt als dof grijs stippellijntje
+    getekend op een eigen as rechts (0-100), los van de reeksen en van de legende."""
     namen = list(reeksen)
     perioden = [str(eind) for eind, _ in periodes]
     volledig = {str(eind): f"{begin}-{eind}" for eind, begin in periodes}
@@ -775,9 +778,39 @@ def toon_lijngrafiek(titel, reeksen, periodes):
         )
         .add_params(aan)
     )
+    grafiek = alt.layer(lijnen, bolletjes)
+    if dekking is not None:
+        # Eigen schaal rechts (0-100 %). Eerst de twee lagen met zwarte punten samen (gedeelde linkeras), dan de dekking
+        # ernaast met een onafhankelijke y-schaal, zodat er maar één as links en één rechts staat.
+        dek = pd.DataFrame(
+            {"periode": perioden, "volledig": [volledig[p] for p in perioden], "procent": dekking}
+        )
+        y_dek = alt.Y(
+            "procent:Q",
+            title="Ongevallen met coördinaten (%)",
+            scale=alt.Scale(domain=[0, 100]),
+            axis=alt.Axis(orient="right", titleColor="gray", labelColor="gray", grid=False),
+        )
+        dek_lijn = alt.Chart(dek).mark_line(color="gray", opacity=0.45, strokeDash=[3, 3]).encode(x=x, y=y_dek)
+        dek_punt = (
+            alt.Chart(dek)
+            .mark_point(color="gray", opacity=0.45, filled=True, size=30)
+            .encode(
+                x=x,
+                y=y_dek,
+                tooltip=[
+                    alt.Tooltip("volledig:N", title="Periode"),
+                    alt.Tooltip("procent:Q", title="Met coördinaten (%)", format=".1f"),
+                ],
+            )
+        )
+        grafiek = alt.layer(grafiek, dek_lijn, dek_punt).resolve_scale(y="independent")
     st.subheader(titel)
-    st.altair_chart(alt.layer(lijnen, bolletjes), width="stretch")
-    st.caption("Klik op een naam in de legende om een lijn aan of uit te zetten. De schaal blijft dezelfde.")
+    st.altair_chart(grafiek, width="stretch")
+    st.caption(
+        "Klik op een naam in de legende om een lijn aan of uit te zetten. De schaal blijft dezelfde."
+        + (" De dofgrijze stippellijn (as rechts) is het gemiddelde van de 3 jaren van het % ongevallen in heel België met bruikbare coördinaten." if dekking else "")
+    )
 
 
 with tab_evolutie:
@@ -799,20 +832,26 @@ with tab_evolutie:
     def provincies_van(gewest):
         return sorted(df.loc[df["gewest"] == gewest, "provincie"].unique())
 
+    # Heel België: eerst het % per jaar, dan per periode het gemiddelde van de 3 jaren (elk jaar telt even zwaar mee)
+    procent_per_jaar = df["coord_status"].isin(["ok", "hersteld"]).groupby(df["jaar"]).mean() * 100
+    dekking = [procent_per_jaar.loc[begin:eind].mean() for eind, begin in periodes]
     toon_lijngrafiek(
         "België",
         {"Totaal": aantallen()} | {naam: aantallen("gewest", gewest) for gewest, naam in GEWEST_NAAM.items()},
         periodes,
+        dekking,
     )
     toon_lijngrafiek(
         "Vlaanderen: provincies",
         {p: aantallen("provincie", p) for p in provincies_van("Vlaams Gewest")},
         periodes,
+        dekking,
     )
     toon_lijngrafiek(
         "Wallonië: provincies",
         {p: aantallen("provincie", p) for p in provincies_van("Waals Gewest")},
         periodes,
+        dekking,
     )
 
     toon_dekking(
@@ -822,8 +861,8 @@ with tab_evolutie:
         "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten (2017-2024).",
     )
     st.caption(
-        "Bruikbare coördinaten per periode (ongevallen met coördinaten / alle ongevallen): "
-        + " · ".join(f"{eind}: {x['met_coord'] / x['alle'] * 100:.1f} %".replace(".", ",") for (eind, _), x in zip(periodes, per_periode))
+        "Bruikbare coördinaten per periode (gemiddelde van het % van de 3 jaren, zoals de grijze lijn): "
+        + " · ".join(f"{eind}: {d:.1f} %".replace(".", ",") for (eind, _), d in zip(periodes, dekking))
         + ". Let op: de dekking stijgt vanaf 2022; een stijging in de grafieken is dus deels een meeteffect (zie aanames.txt 3.4)."
     )
     st.caption(
