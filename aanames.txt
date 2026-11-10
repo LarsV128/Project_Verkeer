@@ -188,6 +188,24 @@ Definitie in dit project:
   Charleroi 98 (enkel 2022). Dit is voorlopig enkel een controlelijst: de zwarte punten en de ranglijst worden er nog
   niet door aangepast. Standaard staat de grote plek in Antwerpen gekozen.
 
+- Standaardcoördinaten (verdacht): sommige politiezones lijken een vaste coördinaat (bv. het stadhuis) in te vullen als
+  de plaats onbekend is. clean_data.py markeert een ongeval als verdacht (kolom verdacht_coord) als op zijn exacte
+  coördinaat in dat jaar minstens 10 ongevallen staan (VERDACHT_MIN) én dat jaar minstens 80 % van alle ongevallen op
+  die coördinaat is (VERDACHT_AANDEEL). Resultaat: 12 plekken, 330 ongevallen (0,13 % van de 253.651 met
+  coördinaten), o.a. Charleroi 98 en Antwerpen 96 (beide enkel 2022), Luik 26, Gent 17, Brussel 15. Controle tegen
+  gemeentehuizen: 6 van de 12 plekken liggen op minder dan 30 m van een gemeentehuis (Charleroi, Antwerpen, Luik,
+  Gent, Brussel, Anderlecht); de andere 6 zijn niet bevestigd (data/plekken_controle.csv: wat OpenStreetMap op elk van
+  de 207 plekken met minstens 10 ongevallen toont). Geen enkele plek viel op een politiegebouw. data/gemeentehuizen.csv
+  is een onvolledige lijst (49 gemeentehuizen, Wikidata en OpenStreetMap), enkel bedoeld als controle.
+  Verdachte ongevallen blijven in alle tellingen en de ranglijst; ze tellen alleen niet mee voor de zwarte punten (en
+  Evolutie) als in het tandwiel "Sluit standaardcoördinaten uit" aan staat (standaard aan). Effect met de
+  standaardinstellingen (2022-2024): 215 zwarte punten wordt 208. In Data View (onderdeel "Veel ongevallen op exact
+  dezelfde coördinaat") blijven ze zichtbaar, met een kolom "verdacht".
+- Open punt: ongevallen met gemeente Luik (NIS 62063) staan deels ver van Luik: 40 op één coördinaat in Brussel (Wetstraat,
+  2017-2020, vooral 2019) en 18 op één coördinaat bij Bergen (50,4536 / 3,9611). Dat valt niet onder de regel hierboven
+  (gespreid over meerdere jaren). 238 ongevallen liggen meer dan 25 km van het midden van hun gemeente, 61 daarvan in
+  Luik. Nog geen maatregel.
+
 5.2 Instellingen (tabblad "Kaart")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
 - Methode "Aantal ongevallen": gewicht per ongeval = 1.

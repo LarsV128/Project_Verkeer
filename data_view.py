@@ -383,6 +383,7 @@ def toon(**gedeeld):
             zwaar=("zwaar", "sum"),
             doden=("doden", "sum"),
             score=("punt", "sum"),
+            verdacht=("verdacht_coord", "sum"),  # ongevallen die als standaardcoördinaat zijn gemarkeerd (clean_data.py)
             lat=("lat", "first"),
             lon=("lon", "first"),
         )
@@ -392,7 +393,7 @@ def toon(**gedeeld):
     )
     plekken["score"] = plekken["score"].round(1)
     gekozen_rij = st.dataframe(
-        plekken[["gemeente", "ongevallen", "jaren", "licht", "zwaar", "doden", "score", "lat", "lon"]],
+        plekken[["gemeente", "ongevallen", "jaren", "licht", "zwaar", "doden", "score", "verdacht", "lat", "lon"]],
         width="stretch",
         height=5 * 35 + 38,
         hide_index=True,

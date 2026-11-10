@@ -545,6 +545,13 @@ with tab_punten:
             help="'en': beide minimums moeten gehaald worden. 'of': één van beide volstaat. "
             "Een minimum van 0 telt niet mee.",
         )
+        sluit_standaard_uit = st.checkbox(
+            "Sluit standaardcoördinaten uit (bv. stadhuizen)",
+            value=True,
+            help="Ongevallen op een coördinaat waar in één jaar minstens 10 ongevallen op exact dezelfde plek staan en dat "
+            "jaar minstens 80 % van alle ongevallen op die plek is (vaak een stadhuis dat de politie invult als de plaats "
+            "onbekend is). Ze tellen niet mee voor de zwarte punten, wel voor alle andere tellingen en de ranglijst.",
+        )
 
     drempel =score_drempel if score_modus else min_totaal
     maat = "score" if score_modus else "totaal"  # waarop de tabellen gesorteerd worden
@@ -583,10 +590,14 @@ with tab_punten:
     alle_jaren = list(range(jaren[0], jaren[1] + 1))
     bruikbaar = ["ok", "hersteld"]
 
+    def zonder_standaard(p):
+        """Laat de verdachte standaardcoördinaten weg als dat in het tandwiel zo staat (zie clean_data.py)."""
+        return p[~p["verdacht_coord"]] if sluit_standaard_uit else p
+
     # Zwarte punten zoeken in heel België (alle types ongevallen, via de punten); de filters hierboven bepalen
     # daarna enkel welke punten je op de kaart en in de lijst ziet. Zo klopt de tabel hieronder altijd voor België.
-    punten_nl = df[df["jaar"].between(*jaren) & df["coord_status"].isin(bruikbaar)].reset_index(drop=True)
-    punten = sel[sel["coord_status"].isin(bruikbaar)]  # enkel het gekozen gebied; voor de verhouding weergegeven/totaal
+    punten_nl = zonder_standaard(df[df["jaar"].between(*jaren) & df["coord_status"].isin(bruikbaar)]).reset_index(drop=True)
+    punten = zonder_standaard(sel[sel["coord_status"].isin(bruikbaar)])  # enkel het gekozen gebied; voor de verhouding weergegeven/totaal
     dek = (len(punten), len(sel), plaats2)
 
     if not per_jaar_modus:
@@ -854,7 +865,7 @@ with tab_evolutie:
     per_periode = []
     for eind, begin in periodes:
         in_periode = df["jaar"].between(begin, eind)
-        p = df[in_periode & df["coord_status"].isin(["ok", "hersteld"])].reset_index(drop=True)
+        p = zonder_standaard(df[in_periode & df["coord_status"].isin(["ok", "hersteld"])]).reset_index(drop=True)
         per_periode.append({"spots": spots_voor_periode(p), "met_coord": len(p), "alle": int(in_periode.sum())})
 
     def aantallen(kolom=None, waarde=None):

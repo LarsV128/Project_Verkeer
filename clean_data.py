@@ -13,6 +13,11 @@ from pyproj import Transformer
 X_BEREIK = (14_000, 300_000)
 Y_BEREIK = (20_000, 250_000)
 
+# Verdachte standaardcoördinaten (zie main()): minstens zoveel ongevallen op één coördinaat in één jaar, en dat jaar
+# is minstens dit aandeel van alle ongevallen op die coördinaat
+VERDACHT_MIN = 10
+VERDACHT_AANDEEL = 0.8
+
 MAP = Path(__file__).parent  # paden zijn vast, ongeacht vanuit welke map je het script start
 RAW = MAP / "data" / "raw" / "OPENDATA_MAP_2017-2024.txt"
 CLEAN = MAP / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
@@ -81,6 +86,20 @@ def main():
     df["lon"] = np.nan
     df.loc[ok, "lat"] = lat
     df.loc[ok, "lon"] = lon
+
+    # Verdachte coördinaten: een standaardcoördinaat (bv. een stadhuis) die ingevuld wordt als de plaats onbekend is.
+    # Een coördinaat met minstens VERDACHT_MIN ongevallen in één jaar, waar dat jaar minstens VERDACHT_AANDEEL van alle
+    # ongevallen op die coördinaat is. Enkel de ongevallen van dat jaar zijn verdacht. Ze blijven in alle tellingen.
+    per_plek_jaar = df[ok].groupby(["x_lambert72", "y_lambert72", "jaar"]).size().rename("n_jaar").reset_index()
+    per_plek_jaar["n_plek"] = per_plek_jaar.groupby(["x_lambert72", "y_lambert72"])["n_jaar"].transform("sum")
+    verdacht = per_plek_jaar[
+        (per_plek_jaar["n_jaar"] >= VERDACHT_MIN) & (per_plek_jaar["n_jaar"] / per_plek_jaar["n_plek"] >= VERDACHT_AANDEEL)
+    ]
+    sleutel = df[["x_lambert72", "y_lambert72", "jaar"]].merge(
+        verdacht[["x_lambert72", "y_lambert72", "jaar"]].assign(verdacht_coord=True), how="left", on=["x_lambert72", "y_lambert72", "jaar"]
+    )
+    df["verdacht_coord"] = (sleutel["verdacht_coord"].fillna(False).to_numpy() & ok.to_numpy()).astype(bool)
+    print(f"verdachte standaardcoördinaten: {len(verdacht)} plekken, {int(df['verdacht_coord'].sum())} ongevallen")
 
     # Brussel is een gewest zonder provincie: expliciet label in plaats van een lege waarde
     df["provincie"] = df["provincie"].str.removeprefix("Provincie ")
