@@ -164,6 +164,13 @@ Definitie in dit project:
   (score, bij gelijke stand meeste doden, dan meeste zwaargewonden; bij de methode "Aantal ongevallen" eerst het aantal) of Locatie (per gemeente, daarbinnen van noord naar zuid; geen
   echte nabijheid, aangrenzende punten over een gemeentegrens kunnen dus gescheiden staan).
 
+- Onderaan "Data View" (onderdeel "Veel ongevallen op exact dezelfde coördinaat"): alle plekken waar minstens 10
+  ongevallen (alle jaren 2017-2024, alle types, enkel bruikbare coördinaten) precies dezelfde coördinaat hebben: 207
+  plekken. Doel: nakijken of het echte gevaarlijke plekken zijn of standaardcoördinaten (bv. stadhuis) die een
+  politiezone invult als de plaats onbekend is. Voorbeelden: Antwerpen 96 ongevallen (stadhuis, enkel 2022) en
+  Charleroi 98 (enkel 2022). Dit is voorlopig enkel een controlelijst: de zwarte punten en de ranglijst worden er nog
+  niet door aangepast. Standaard staat de grote plek in Antwerpen gekozen.
+
 5.2 Instellingen (tabblad "Kaart")
 - Afstand: 25 / 50 / 75 / 100 / 150 / 200 meter. Standaard 50 m (ongeveer één kruispunt).
 - Methode "Aantal ongevallen": gewicht per ongeval = 1.

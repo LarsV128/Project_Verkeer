@@ -1169,6 +1169,62 @@ with tab_data:
             "Alle ongevallen die bij dit zwarte punt tellen staan op de kaart en in de tabel.",
         )
 
+    st.divider()
+    st.header("Veel ongevallen op exact dezelfde coördinaat")
+    st.markdown(
+        "Plekken waar minstens 10 ongevallen precies dezelfde coördinaat hebben (alle jaren 2017-2024, alle types). "
+        "Dat kan een echt gevaarlijke plek zijn, maar ook een standaardcoördinaat (bv. een stadhuis) die een politiezone "
+        "invult als de plaats niet bekend is. Kijk na op de kaart en in de jaren, maanden en uren."
+    )
+    bruikbaar_c = df[df["coord_status"].isin(["ok", "hersteld"])].assign(punt=lambda d: punten_per_ongeval(d))
+    code_c = bruikbaar_c["class_accident_code"].astype(int)
+    bruikbaar_c = bruikbaar_c.assign(licht=code_c.isin(LICHT), zwaar=code_c.isin(ZWAAR), doden=code_c.isin(DODEN))
+    plekken = (
+        bruikbaar_c.groupby(["x_lambert72", "y_lambert72"])
+        .agg(
+            gemeente=("gemeente", lambda s: str(s.value_counts().index[0])),
+            ongevallen=("jaar", "size"),
+            jaren=("jaar", lambda s: ", ".join(str(j) for j in sorted(s.unique()))),
+            licht=("licht", "sum"),
+            zwaar=("zwaar", "sum"),
+            doden=("doden", "sum"),
+            score=("punt", "sum"),
+            lat=("lat", "first"),
+            lon=("lon", "first"),
+        )
+        .query("ongevallen >= 10")
+        .sort_values("ongevallen", ascending=False)
+        .reset_index()
+    )
+    plekken["score"] = plekken["score"].round(1)
+    st.dataframe(
+        plekken[["gemeente", "ongevallen", "jaren", "licht", "zwaar", "doden", "score", "lat", "lon"]],
+        width="stretch",
+        height=5 * 35 + 38,
+        hide_index=True,
+        column_config={c: st.column_config.NumberColumn(format="%.6f") for c in ("lat", "lon")},
+    )
+    st.caption(f"{len(plekken)} coördinaten met minstens 10 ongevallen.")
+    # Standaard de grootste plek in Antwerpen (96 ongevallen in 2022, bij het stadhuis)
+    antwerpen = plekken.index[plekken["gemeente"] == "Antwerpen"]
+    gekozen_plek = st.selectbox(
+        "Bekijk een plek (typ om te zoeken)",
+        list(plekken.index),
+        index=int(antwerpen[0]) if len(antwerpen) else 0,
+        format_func=lambda i: f"{plekken.at[i, 'gemeente']} · {plekken.at[i, 'ongevallen']} ongevallen · {plekken.at[i, 'jaren']}"
+        f" · ({plekken.at[i, 'lat']:.5f}, {plekken.at[i, 'lon']:.5f})",
+    )
+    rij = plekken.loc[gekozen_plek]
+    op_plek = bruikbaar_c[
+        (bruikbaar_c["x_lambert72"] == rij["x_lambert72"]) & (bruikbaar_c["y_lambert72"] == rij["y_lambert72"])
+    ].sort_values(["jaar", "maand", "uur"])
+    st.map(op_plek.iloc[:1], latitude="lat", longitude="lon", size=5, zoom=17)
+    st.caption(f"Alle {len(op_plek)} ongevallen liggen op deze ene plek; de kaart toont dus één bol.")
+    st.dataframe(
+        op_plek[["gemeente", "jaar", "maand", "uur", "class_accident"]], width="stretch", hide_index=True, height=5 * 35 + 38
+    )
+    toon_dekking(len(op_plek), len(op_plek), "deze plek", "Alle ongevallen op deze coördinaat staan in de tabel.")
+
 # ---------- Bron (onder alle tabbladen) ----------
 st.divider()
 st.caption(
