@@ -165,8 +165,9 @@ Definitie in dit project:
   echte nabijheid, aangrenzende punten over een gemeentegrens kunnen dus gescheiden staan).
 
 - Onderaan "Data View" (onderdeel "Veel ongevallen op exact dezelfde coördinaat"): alle plekken waar minstens 10
-  ongevallen (jaren te kiezen met een slider, standaard 2022-2024; alle types, enkel bruikbare coördinaten) precies
-  dezelfde coördinaat hebben (alle jaren 2017-2024: 207 plekken). Klik je een rij aan, dan zie je het hele zwarte punt
+  ongevallen (in de periode van het tabblad Kaart, gekozen met de pijltjes; alle types, enkel bruikbare coördinaten)
+  precies dezelfde coördinaat hebben (alle jaren 2017-2024: 207 plekken). Standaard staat de grootste plek in
+  Antwerpen getoond; klik je een andere rij aan, dan zie je het hele zwarte punt
   (gezocht met de instellingen van het tandwiel in Kaart, over de gekozen jaren) met één tabel per coördinaat; bv.
   Antwerpen 2022-2024: 97 ongevallen, score 109, tabellen van 96 en 1 ongeval. Is de plek met die instellingen geen
   zwart punt, dan staan enkel de ongevallen op die coördinaat in de tabel. Doel: nakijken of het echte gevaarlijke plekken zijn of standaardcoördinaten (bv. stadhuis) die een

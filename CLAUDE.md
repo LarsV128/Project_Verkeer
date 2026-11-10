@@ -15,6 +15,7 @@
 
 ## Bestanden in dit project
 - `app.py`: Streamlit-app (`streamlit run app.py --server.port 1234`), (de app heet "Ongevallen"), met de tabbladen Kaart, Evolutie (lijngrafieken per periode van 3 jaar) en Data View (met onderaan de foute coördinaten). Geen zijbalk; filters staan bovenaan elk tabblad, alle andere instellingen van Kaart in het tandwiel.
+- `data_view.py`: los script met het volledige tabblad Data View (`toon(...)`, aangeroepen door `app.py`). Wis het bestand en de app werkt gewoon verder, zonder dat tabblad. Alles wat het nodig heeft geeft `app.py` mee als parameters.
 - `clean_data.py`: data/raw → data, inclusief omrekening van de coördinaten en het herstel van de 2 onmogelijke waarden.
 - `aanames.txt`: alle keuzes en instellingen uitgeschreven (coördinaten, puntenscore, definitie van een zwart punt, ranglijst). **Houd dit bestand bij elke wijziging in de logica actueel.**
 - `MISSION.md`: missie, werkprincipes, genomen keuzes en open punten. Houd dit ook actueel.
