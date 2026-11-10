@@ -165,8 +165,11 @@ Definitie in dit project:
   echte nabijheid, aangrenzende punten over een gemeentegrens kunnen dus gescheiden staan).
 
 - Onderaan "Data View" (onderdeel "Veel ongevallen op exact dezelfde coördinaat"): alle plekken waar minstens 10
-  ongevallen (alle jaren 2017-2024, alle types, enkel bruikbare coördinaten) precies dezelfde coördinaat hebben: 207
-  plekken. Doel: nakijken of het echte gevaarlijke plekken zijn of standaardcoördinaten (bv. stadhuis) die een
+  ongevallen (jaren te kiezen met een slider, standaard 2022-2024; alle types, enkel bruikbare coördinaten) precies
+  dezelfde coördinaat hebben (alle jaren 2017-2024: 207 plekken). Klik je een rij aan, dan zie je het hele zwarte punt
+  (gezocht met de instellingen van het tandwiel in Kaart, over de gekozen jaren) met één tabel per coördinaat; bv.
+  Antwerpen 2022-2024: 97 ongevallen, score 109, tabellen van 96 en 1 ongeval. Is de plek met die instellingen geen
+  zwart punt, dan staan enkel de ongevallen op die coördinaat in de tabel. Doel: nakijken of het echte gevaarlijke plekken zijn of standaardcoördinaten (bv. stadhuis) die een
   politiezone invult als de plaats onbekend is. Voorbeelden: Antwerpen 96 ongevallen (stadhuis, enkel 2022) en
   Charleroi 98 (enkel 2022). Dit is voorlopig enkel een controlelijst: de zwarte punten en de ranglijst worden er nog
   niet door aangepast. Standaard staat de grote plek in Antwerpen gekozen.
