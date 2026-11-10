@@ -1,0 +1,42 @@
+HOE ONTSTAAT EEN ZWART PUNT? Uitgewerkt voorbeeld: twee bollen die elkaar net raken
+=====================================================================================
+
+Instellingen: periode 2022-2024, Antwerpen, afstand 50 m, methode Puntenscore, zwart punt vanaf 15 punten en
+minstens 3 ongevallen. Punten per ongeval: 1 (lichtgewonden), 3 (zwaargewonden), 5 (doden).
+De zoekfunctie is zoek_clusters in app.py.
+
+De twee bollen (de ligging bij het kruispunt Slachthuislaan / Schijnpoortweg is niet gecontroleerd; de data bevat
+geen straatnamen):
+
+                     Bol A                          Bol B
+  Plaats (lat, lon)  51,22797 - 4,44003             51,22735 - 4,43912
+  Ongevallen         31 (29 licht, 2 zwaar)         16 (alle licht)
+  Score              29 + 2 x 3 = 35 (klasse 30-49) 16 (klasse minder dan 20)
+
+Stap voor stap
+--------------
+1. Elk ongeval krijgt een telling: de punten van alle ongevallen binnen 50 m, het ongeval zelf inbegrepen.
+2. Alleen tellingen vanaf 15 blijven kandidaat. Een lagere telling kan nooit de kern van een zwart punt zijn.
+3. Hoogste telling eerst. Het kernongeval van A heeft telling 35, dus A komt vroeger aan de beurt dan B. A neemt alle
+   31 ongevallen binnen 50 m van dat kernongeval en haalt ze uit de lijst.
+4. De buren worden opnieuw geteld. Het kernongeval van B had in het begin telling 19 (19 ongevallen binnen 50 m).
+   Drie daarvan liggen ook binnen 50 m van A en zijn al weg. B zakt dus naar 16.
+5. 16 haalt de drempel van 15 nog. B wordt het volgende zwarte punt, met de overige 16 ongevallen.
+6. Daarom zijn er twee bollen. De twee kernongevallen liggen 90 m uit elkaar. B ligt dus buiten het bereik van 50 m
+   van A en wordt niet opgeslorpt. De getekende cirkels (straal 50 m, rond het gemiddelde van de ongevallen) raken
+   elkaar bijna: de gemiddelden liggen 93 m uit elkaar; bij 100 m raken twee cirkels van straal 50 m.
+
+Wat de regels doen
+------------------
+- Ongevallen die in beide cirkels liggen tellen maar een keer, bij het sterkste punt. De 3 gedeelde ongevallen zitten
+  dus enkel in A.
+- Zakt B na stap 4 onder 15 punten, dan is er geen tweede bol. Hier zou B 2 punten meer moeten verliezen.
+- Twee zwarte punten liggen daardoor minstens 1 afstand (50 m) uit elkaar, niet noodzakelijk 2 afstanden (100 m): hun
+  cirkels kunnen dus overlappen zonder dat het om een zwart punt gaat.
+
+Bijna-paar
+----------
+Een tweede paar in Antwerpen past bijna (51,22968 - 4,44314 met score 30, en 51,22994 - 4,44471 met score 17), maar
+ligt 113 m uit elkaar en raakt dus niet.
+
+Zie ook aanames.txt, onderdeel 5.
