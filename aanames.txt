@@ -157,10 +157,19 @@ Definitie in dit project:
   tandwiel; twee zwarte punten liggen minstens die afstand uit elkaar, dus hun cirkels kunnen overlappen. Een ongeval hoort bij maximaal één zwart punt: het sterkste punt neemt zijn
   ongevallen weg (zie hierboven) en de rest van de buur wordt opnieuw geteld. Haalt die rest de drempel niet meer, dan
   is er geen tweede bol.
-- Code per zwart punt: de eerste 3 letters van de gemeente plus het clusternummer, bv. ANT-006 (functie punt_code in
-  app.py). Het nummer is de volgorde waarin het punt gevonden werd (hoogste telling eerst) en verandert dus als je
-  periode of instellingen wijzigt. De code staat als eerste kolom in de tabel en in de hover op de kaart (met
-  pydeck: code, gemeente, score en aantal ongevallen). Klikken op een bol toont ook het ingezoomde zicht.
+- Code per zwart punt: de code van de provincie plus het clusternummer, bv. ANT-006 (ANT, LIM, OVL, VBR, WVL, HEN,
+  LUI, LUX, NAM, WBR, BRU voor Brussel; functie punt_code en PROVINCIE_CODE in app.py). Het punt hoort bij de provincie
+  waar de meeste van zijn ongevallen liggen. Het nummer is de volgorde waarin het punt gevonden werd (hoogste telling
+  eerst) en verandert dus als je periode of instellingen wijzigt. De code staat als eerste kolom in de tabel en in de
+  hover op de kaart (met pydeck: code, gemeente, score en aantal ongevallen).
+- Bolgrootte op de kaart (pydeck): de echte zoekafstand in meters, maar uitgezoomd nooit kleiner dan 6 pixels
+  (radius_min_pixels), zodat ze zichtbaar blijven op de kaart van heel België.
+- Klik op een bol: de keuzelijst "Gemeente" springt naar de gemeente van dat punt, het punt staat bovenaan de tabel
+  (geel gemarkeerd) en het ingezoomde zicht verschijnt. Het laatst aangeklikte, op de kaart of in de tabel, is het
+  actieve punt. Wegklikken (niets aangeklikt) behoudt de oude selectie. Opnieuw op dezelfde bol klikken geeft geen
+  nieuwe selectie. Voor er geklikt is, is het actieve punt dat met de hoogste score (bij gelijke stand de meeste
+  doden, dan zwaargewonden). Een oude rij-selectie in de tabel vervalt zodra de tabel verandert (andere gemeente,
+  sortering of een punt dat naar boven springt), zodat ze niet naar een ander punt wijst.
 - Kaart, ingezoomd zicht per zwart punt: vlak onder de grote kaart in het tabblad "Kaart" staat een keuzelijst
   "Gemeente" (typbaar; filtert op de gemeente waar de meeste ongevallen van het punt liggen) en een tabel van 5 rijen
   (scrollbaar) met de zwarte punten; klik op een rij. Daaronder verschijnt een ingezoomde kaart met de individuele ongevallen van dat punt (geel = lichtgewonden, oranje =

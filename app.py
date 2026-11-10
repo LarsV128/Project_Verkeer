@@ -321,11 +321,18 @@ def toon_telling(spots, alle_jaren, per_jaar_modus):
             st.table(stijl)
 
 
-def punt_code(gemeente, punt_id):
-    """Korte code van een zwart punt, bv. ANT-006: de eerste 3 letters van de gemeente plus het clusternummer.
+PROVINCIE_CODE = {
+    "Antwerpen": "ANT", "Limburg": "LIM", "Oost-Vlaanderen": "OVL", "Vlaams-Brabant": "VBR", "West-Vlaanderen": "WVL",
+    "Henegouwen": "HEN", "Luik": "LUI", "Luxemburg": "LUX", "Namen": "NAM", "Waals-Brabant": "WBR",
+    "Geen provincie (Brussel)": "BRU",
+}
+
+
+def punt_code(provincie, punt_id):
+    """Korte code van een zwart punt, bv. ANT-006: de code van de provincie plus het clusternummer.
 
     Het nummer is de volgorde waarin het punt gevonden werd; het verandert als je periode of instellingen wijzigt."""
-    return f"{str(gemeente)[:3].upper()}-{int(punt_id):03d}"
+    return f"{PROVINCIE_CODE.get(str(provincie), str(provincie)[:3].upper())}-{int(punt_id):03d}"
 
 
 # Kleur van een individueel ongeval in het ingezoomde zicht van een zwart punt (class_accident_code -> kleur)
@@ -368,7 +375,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     # Het clusternummer zit in de kolom `cluster` (Elk jaar apart) of in de index (Vaste locaties)
     ids = spots["cluster"] if "cluster" in spots.columns else spots.index.to_series()
     tabel = spots.assign(punt_id=ids.to_numpy())
-    tabel["code"] = [punt_code(g, i) for g, i in zip(tabel["gemeente"], tabel["punt_id"])]
+    tabel["code"] = [punt_code(p, i) for p, i in zip(tabel["provincie"], tabel["punt_id"])]
     kolommen = ["code"] + kolommen
 
     kaart_klik = None  # id van het zwarte punt dat je op de kaart aanklikt
@@ -386,6 +393,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
             get_position="[lon, lat]",
             get_radius=straal,
             radius_units="'meters'",  # tekst in pydeck: aanhalingstekens binnen aanhalingstekens, anders een formule
+            radius_min_pixels=6,  # uitgezoomd nooit kleiner dan 6 pixels; ingezoomd de echte straal in meters
             get_fill_color="kleur",
             get_line_color=[80, 80, 80],
             stroked=True,
@@ -405,6 +413,21 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     toon_legende()
     toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
     st.subheader("Selectie Zwart Punt")
+
+    # Het actieve punt: het laatst aangeklikte, op de kaart of in de tabel. Klik op de kaart: de keuzelijst springt
+    # naar de gemeente van dat punt en het punt staat bovenaan de tabel (geel). Dit moet vóór de keuzelijst gebeuren.
+    sessie = st.session_state
+    alle_ids = set(tabel["punt_id"])
+    actief = sessie.get("actief_punt") if sessie.get("actief_punt") in alle_ids else None
+    bron = sessie.get("actief_bron")
+    if actief is None:  # nog niets aangeklikt (of de punten zijn veranderd): het punt met de hoogste score
+        actief = tabel.sort_values(["score", "doden", "zwaar"], ascending=False)["punt_id"].iloc[0]
+        bron = "kaart"
+    if kaart_klik is not None and kaart_klik != sessie.get("vorige_kaart_klik") and kaart_klik in alle_ids:
+        actief, bron = kaart_klik, "kaart"
+        sessie["punt_gemeente"] = str(tabel.loc[tabel["punt_id"] == kaart_klik, "gemeente"].iloc[0])
+    sessie["vorige_kaart_klik"] = kaart_klik
+
     kies_gemeente, kies_sorteer = st.columns([2, 1])
     gemeente = kies_gemeente.selectbox(
         "Gemeente (typ om te zoeken)",
@@ -424,22 +447,32 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
         tabel = tabel[tabel["gemeente"].astype(str) == gemeente]
     if sortering == "Locatie":
         tabel = tabel.sort_values(["gemeente", "lat"], ascending=[True, False])
+    if bron == "kaart" and actief is not None and (tabel["punt_id"] == actief).any():  # aangeklikt punt bovenaan
+        tabel = pd.concat([tabel[tabel["punt_id"] == actief], tabel[tabel["punt_id"] != actief]])
     tabel = tabel.reset_index(drop=True)
+    is_actief = (tabel["punt_id"] == actief).to_numpy()
     gekozen = st.dataframe(
-        tabel[kolommen],
+        tabel[kolommen].style.apply(
+            lambda r: ["background-color: rgba(255, 190, 0, 0.35)" if is_actief[r.name] else "" for _ in r], axis=1
+        ),
         width="stretch",
         height=5 * 35 + 38,  # kopregel + 5 rijen; scroll voor de rest
         hide_index=True,
         on_select="rerun",
         selection_mode="single-row",
-        key="tabel_punten",
+        # De sleutel hangt af van de rijen en hun volgorde: verandert de tabel (andere gemeente, sortering of een punt dat
+        # naar boven springt), dan vervalt een oude rij-selectie. Anders wijst die naar een ander punt.
+        key=f"tabel_punten_{abs(hash(tuple(tabel['punt_id'])))}",
     )
     st.caption(f"{len(tabel)} zwarte punten. Klik op een rij (of op een bol op de kaart) om dat punt ingezoomd hieronder te zien.")
     rijen = gekozen.selection.rows
-    if rijen and rijen[0] < len(tabel):
-        toon_punt_detail(leden, tabel.at[rijen[0], "punt_id"])
-    elif kaart_klik is not None:
-        toon_punt_detail(leden, kaart_klik)
+    rij_id = tabel.at[rijen[0], "punt_id"] if rijen and rijen[0] < len(tabel) else None
+    if rij_id is not None and rij_id != sessie.get("vorige_rij_id"):  # nieuwe klik in de tabel
+        actief, bron = rij_id, "rij"
+    sessie["vorige_rij_id"] = rij_id
+    sessie["actief_punt"], sessie["actief_bron"] = actief, bron
+    if actief is not None:
+        toon_punt_detail(leden, actief)
     if onder_kaart:
         onder_kaart()
     toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
