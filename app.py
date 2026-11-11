@@ -27,8 +27,7 @@ LICHT, ZWAAR, DODEN = [4], [3], [1, 2]
 # Punten per ONGEVAL (niet per slachtoffer: de bron heeft geen slachtoffers), volgens het zwaarste type.
 PUNT_LICHT, PUNT_ZWAAR, PUNT_DODEN = 1, 3, 5
 AFSTAND = 50  # meter: ongevallen binnen deze afstand worden samengenomen tot één zwart punt
-SCORE_DREMPEL = 15  # een zwart punt heeft minstens zoveel punten ...
-MIN_TOTAAL = 3  # ... en minstens zoveel ongevallen
+SCORE_DREMPEL = 15  # een zwart punt heeft minstens zoveel punten (dus ook minstens 3 ongevallen: 3 x 5 = 15)
 
 st.set_page_config(page_title="Ongevallen", layout="wide", initial_sidebar_state="collapsed")
 st.title("Ongevallen")
@@ -462,10 +461,6 @@ with tab_punten:
 
     sorteer = ["score", "doden", "zwaar"]  # volgorde van de tabellen
 
-    def voldoet(spots):
-        """Een zwart punt heeft naast de score (SCORE_DREMPEL) ook minstens MIN_TOTAAL ongevallen."""
-        return spots[spots["totaal"] >= MIN_TOTAAL]
-
     def spots_voor_periode(p):
         """Zwarte punten (vaste instelling, zie bovenaan) over één periode van ongevallen, gezocht in heel België.
 
@@ -473,7 +468,7 @@ with tab_punten:
         cluster = zoek_clusters(
             p["x_lambert72"].to_numpy(), p["y_lambert72"].to_numpy(), punten_per_ongeval(p), AFSTAND, SCORE_DREMPEL
         )
-        return voldoet(bouw_spots(p, cluster)[1])
+        return bouw_spots(p, cluster)[1]
 
     basis_kolommen = ["gemeente", "score", "totaal", "licht", "zwaar", "doden"]
 
@@ -498,7 +493,7 @@ with tab_punten:
     leden, spots_nl = bouw_spots(punten_nl, cluster)
     per_jaar = leden.groupby(["cluster", "jaar"]).size().unstack(fill_value=0).reindex(columns=alle_jaren, fill_value=0)
     per_jaar.columns = [str(j) for j in per_jaar.columns]
-    spots_nl = voldoet(spots_nl).join(per_jaar)
+    spots_nl = spots_nl.join(per_jaar)
 
     def telling_onder_kaart():
         """De tabel met het aantal zwarte punten (altijd heel België) onder de kaart."""
@@ -527,13 +522,13 @@ with tab_punten:
             "Een **zwart punt** is hier een plek waar binnen een vaste afstand genoeg (ernstige) ongevallen gebeurden. "
             "We lijken op de puntentelling van Vlaanderen voor "
             "[gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten) "
-            "(3 jaar, score van minstens 15, minstens 3 ongevallen), maar tellen **per ongeval** en niet per slachtoffer: "
+            "(3 jaar, score van minstens 15), maar tellen **per ongeval** en niet per slachtoffer: "
             "de bron bevat geen slachtoffers. Alle types ongevallen tellen mee via hun punten. "
             "*De afstand dient enkel om ongevallen tot één punt samen te voegen.*"
         )
         st.caption(
             f"Vaste instelling: afstand {AFSTAND} m · score = {PUNT_LICHT} × licht + {PUNT_ZWAAR} × zwaar + {PUNT_DODEN} × doden, "
-            f"per ongeval (niet per slachtoffer). Zwart punt vanaf **{SCORE_DREMPEL} punten** en minstens **{MIN_TOTAAL} ongevallen**. "
+            f"per ongeval (niet per slachtoffer). Zwart punt vanaf **{SCORE_DREMPEL} punten** (dus minstens 3 ongevallen). "
             "Ongevallen op verdachte standaardcoördinaten (bv. stadhuizen) tellen niet mee."
         )
         st.caption(
@@ -746,8 +741,8 @@ with tab_evolutie:
         + ". Let op: de dekking stijgt vanaf 2022; een stijging in de grafieken is dus deels een meeteffect (zie aanames.txt 3.4)."
     )
     st.caption(
-        f"Instelling zoals in het tabblad Kaart: afstand {AFSTAND} m, zwart punt vanaf {SCORE_DREMPEL} punten en minstens "
-        f"{MIN_TOTAAL} ongevallen. Een punt telt mee bij het gewest en de provincie waar de meeste van zijn ongevallen liggen."
+        f"Instelling zoals in het tabblad Kaart: afstand {AFSTAND} m, zwart punt vanaf {SCORE_DREMPEL} punten. "
+        f"Een punt telt mee bij het gewest en de provincie waar de meeste van zijn ongevallen liggen."
     )
 
 # ---------- Bron (onder alle tabbladen) ----------

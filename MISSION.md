@@ -45,14 +45,14 @@ kunnen worden uitgelegd.
 - Gebruikt voor de zwarte punten. (De ranglijst van gemeenten stond in Data View en zit niet meer in de app.)
 
 ### Zwarte punten
-- Een zwart punt is een plek waar **binnen een gekozen afstand genoeg (ernstige) ongevallen** gebeurden: standaard **score ≥ 15 én ≥ 3 ongevallen in een periode van 3 jaar** (Vlaamse regel). In het tabblad kies je die periode met pijltjes (2017-2019 … 2022-2024).
+- Een zwart punt is een plek waar **binnen een gekozen afstand genoeg (ernstige) ongevallen** gebeurden: standaard **score ≥ 15 in een periode van 3 jaar** (Vlaamse regel; de tweede voorwaarde "≥ 3 ongevallen" is op 2026-11-11 geschrapt: 3 × 5 = 15, dus altijd vervuld). In het tabblad kies je die periode met pijltjes (2017-2019 … 2022-2024).
 - **Buren tellen in plaats van een raster:** rastercellen snijden clusters op de celrand door en missen 13-17% van de ongevallen die een cirkel wel vindt.
 - Werkwijze: het ongeval met de hoogste som vormt een cluster met zijn buren, die worden weggenomen, en dat herhaalt zich. Zo overlappen punten niet.
 - **Afstand:** vast 50 m (vroeger instelbaar 25-200 m), ongeveer één kruispunt.
-- **Methode:** puntenscore, vanaf 15 punten en minstens 3 ongevallen. De methode *Aantal ongevallen* is op 2026-11-11 verwijderd.
+- **Methode:** puntenscore, vanaf 15 punten. De methode *Aantal ongevallen* is op 2026-11-11 verwijderd.
 - Resultaat standaard (50 m, heel België): 2022-2024 → 215 zwarte punten; 2021-2023 → 180.
 - **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen. De **kleur toont de score** met een vaste schaal die overal hetzelfde is (dof geel < 20, dof oranje 20-24, zalm 25-29, karmozijn 30-49, dof paars ≥ 50; de laatste 5 klassen van een Datawrapper-schaal), met een legende onder elke kaart.
-- **Hard coded sinds 2026-11-11:** alle instellingen van een zwart punt liggen vast als constanten bovenaan `app.py` (punten 1/3/5, 50 m, vanaf 15 punten, minstens 3 ongevallen, standaardcoördinaten uitgesloten). Verwijderd: het tandwiel, de extra voorwaarden en de weergave *Elk jaar apart*; de weergave is *vaste locaties, aantallen per jaar*.
+- **Hard coded sinds 2026-11-11:** alle instellingen van een zwart punt liggen vast als constanten bovenaan `app.py` (punten 1/3/5, 50 m, vanaf 15 punten, standaardcoördinaten uitgesloten). Verwijderd: het tandwiel, de extra voorwaarden en de weergave *Elk jaar apart*; de weergave is *vaste locaties, aantallen per jaar*.
 
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.

@@ -1,8 +1,8 @@
 HOE ONTSTAAT EEN ZWART PUNT? Uitgewerkt voorbeeld: twee bollen die elkaar net raken
 =====================================================================================
 
-Vaste instelling (zo ook sinds 2026-11-11 hard coded): periode 2022-2024, Antwerpen, afstand 50 m, zwart punt vanaf 15 punten en
-minstens 3 ongevallen. Punten per ongeval: 1 (lichtgewonden), 3 (zwaargewonden), 5 (doden).
+Vaste instelling (zo ook sinds 2026-11-11 hard coded): periode 2022-2024, Antwerpen, afstand 50 m, zwart punt vanaf 15 punten.
+Punten per ongeval: 1 (lichtgewonden), 3 (zwaargewonden), 5 (doden).
 De zoekfunctie is zoek_clusters in app.py.
 
 De twee bollen (de ligging bij het kruispunt Slachthuislaan / Schijnpoortweg is niet gecontroleerd; de data bevat
