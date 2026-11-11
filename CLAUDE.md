@@ -15,10 +15,11 @@
 
 ## Bestanden in dit project
 - `.venv/` (niet in git): extra omgeving enkel voor dit project, met `pydeck` (kaart met hover en klik). Aanmaken: `python -m venv .venv --system-site-packages` (in `syntra-ds`), dan `.venv\Scripts\python -m pip install pydeck`. Starten met `.venv\Scripts\python -m streamlit run app.py --server.port 1234`; zonder pydeck (gewone `syntra-ds`) valt de kaart terug op `st.map`. `syntra-ds` zelf blijft ongewijzigd.
-- `app.py`: Streamlit-app (`streamlit run app.py --server.port 1234`), (de app heet "Ongevallen"), met de tabbladen Kaart, Evolutie (lijngrafieken per periode van 3 jaar) en Data View (met onderaan de foute coördinaten). Geen zijbalk; filters staan bovenaan elk tabblad, alle andere instellingen van Kaart in het tandwiel.
-- `data_view.py`: los script met het volledige tabblad Data View (`toon(...)`, aangeroepen door `app.py`). Wis het bestand en de app werkt gewoon verder, zonder dat tabblad. Alles wat het nodig heeft geeft `app.py` mee als parameters.
+- `app.py`: Streamlit-app (`streamlit run app.py --server.port 1234`), (de app heet "Ongevallen"), met de tabbladen Kaart en Evolutie (lijngrafieken per periode van 3 jaar). Geen zijbalk; filters staan bovenaan elk tabblad. De instelling van een zwart punt (punten 1/3/5, afstand 50 m, vanaf 15 punten, minstens 3 ongevallen, standaardcoördinaten uitgesloten) staat hard coded als constanten bovenaan `app.py`; er is geen tandwiel meer.
+- `data_view.py`: het vroegere tabblad Data View. **Sinds 2026-11-11 niet meer in de app** (geen import, geen tabblad); het bestand blijft voorlopig staan, ongebruikt, en werkt niet meer zonder aanpassing (`app.py` geeft de nodige functies niet meer mee). Mag later weg.
+- `uitleg_zwart_punt.ipynb` (niet in git): notebook dat stap voor stap met code uitlegt hoe een zwart punt ontstaat, met drie voorbeelden. Staat in `.gitignore`, hoort niet bij de app.
 - `clean_data.py`: data/raw → data, inclusief omrekening van de coördinaten en het herstel van de 2 onmogelijke waarden.
-- `aanames.txt`: alle keuzes en instellingen uitgeschreven (coördinaten, puntenscore, definitie van een zwart punt, ranglijst). **Houd dit bestand bij elke wijziging in de logica actueel.**
+- `aanames.txt`: alle keuzes en instellingen uitgeschreven (coördinaten, puntenscore, definitie van een zwart punt). **Houd dit bestand bij elke wijziging in de logica actueel.**
 - `MISSION.md`: missie, werkprincipes, genomen keuzes en open punten. Houd dit ook actueel.
 
 ## Werken aan de definitie van een zwart punt

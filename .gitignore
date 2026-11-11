@@ -5,9 +5,17 @@ data/raw/*
 # De opgeschoonde parquet (9 MB) staat wel in git: Streamlit Cloud heeft de ruwe data niet en leest enkel de parquet.
 # Ze is reproduceerbaar met: python clean_data.py
 
+# Csv-export om in Excel te bekijken (enkel eigen gebruik, niet voor de app)
+data/bekijk_parquet.py
+data/*.csv
+
 # Python
 __pycache__/
 *.pyc
+
+# Uitleg-notebook over zwarte punten (enkel eigen gebruik, niet voor de app)
+uitleg_zwart_punt.ipynb
+.ipynb_checkpoints/
 
 # Geheimen
 .env

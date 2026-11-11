@@ -1,7 +1,7 @@
 HOE ONTSTAAT EEN ZWART PUNT? Uitgewerkt voorbeeld: twee bollen die elkaar net raken
 =====================================================================================
 
-Instellingen: periode 2022-2024, Antwerpen, afstand 50 m, methode Puntenscore, zwart punt vanaf 15 punten en
+Vaste instelling (zo ook sinds 2026-11-11 hard coded): periode 2022-2024, Antwerpen, afstand 50 m, zwart punt vanaf 15 punten en
 minstens 3 ongevallen. Punten per ongeval: 1 (lichtgewonden), 3 (zwaargewonden), 5 (doden).
 De zoekfunctie is zoek_clusters in app.py.
 

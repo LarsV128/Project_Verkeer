@@ -1,6 +1,6 @@
 # Mission statement – Verkeersongevallen in België, 2017-2024
 
-> Bijgewerkt op 2026-11-09. Alle details en getallen staan uitgeschreven in [`aanames.txt`](aanames.txt).
+> Bijgewerkt op 2026-11-11. Alle details en getallen staan uitgeschreven in [`aanames.txt`](aanames.txt).
 
 ## Missie
 Centrale vraag : Is er een verbetering in aantal Zwarte Punten te zien in België, Gewesten, Provincies?
@@ -39,39 +39,37 @@ kunnen worden uitgelegd.
 
 ### Puntenscore (Vlaamse telling, sinds 2026-11-09)
 - Bron: [Vlaanderen, gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten). Volledige samenvatting in `aanames.txt` onderdeel 4.
-- Elk ongeval krijgt punten volgens zijn type: licht 1 · zwaar 3 · doden 5 (instelbaar met het tandwiel ⚙️).
+- Elk ongeval krijgt punten volgens zijn type: licht 1 · zwaar 3 · doden 5 (vast in de app, sinds 2026-11-11 niet meer instelbaar).
 - **Afwijking van Vlaanderen:** zij tellen per *slachtoffer*; onze bron (45 variabelen, gecontroleerd) heeft geen slachtoffers, enkel het zwaarste type per *ongeval*. Wij tellen dus per ongeval.
 - De Vlaamse **verhogingsfactor 1,7** (voetgangers, fietsers, bromfietsers) nemen we **niet** over: de bron toont enkel wie *betrokken* was, niet wie het slachtoffer was. Dat zou een benadering zijn.
-- Gebruikt voor de methode "Puntenscore" (standaard) bij zwarte punten en voor de ranglijst van gemeenten.
+- Gebruikt voor de zwarte punten. (De ranglijst van gemeenten stond in Data View en zit niet meer in de app.)
 
 ### Zwarte punten
 - Een zwart punt is een plek waar **binnen een gekozen afstand genoeg (ernstige) ongevallen** gebeurden: standaard **score ≥ 15 én ≥ 3 ongevallen in een periode van 3 jaar** (Vlaamse regel). In het tabblad kies je die periode met pijltjes (2017-2019 … 2022-2024).
 - **Buren tellen in plaats van een raster:** rastercellen snijden clusters op de celrand door en missen 13-17% van de ongevallen die een cirkel wel vindt.
 - Werkwijze: het ongeval met de hoogste som vormt een cluster met zijn buren, die worden weggenomen, en dat herhaalt zich. Zo overlappen punten niet.
-- **Afstand:** standaard 50 m (instelbaar 25-200 m), ongeveer één kruispunt.
-- **Twee methodes:** *Puntenscore* (standaard, vanaf 15 punten en minstens 3 ongevallen) en *Aantal ongevallen* (standaard minstens 3).
+- **Afstand:** vast 50 m (vroeger instelbaar 25-200 m), ongeveer één kruispunt.
+- **Methode:** puntenscore, vanaf 15 punten en minstens 3 ongevallen. De methode *Aantal ongevallen* is op 2026-11-11 verwijderd.
 - Resultaat standaard (50 m, heel België): 2022-2024 → 215 zwarte punten; 2021-2023 → 180.
 - **Kaart:** elk zwart punt is een even grote cirkel op het gemiddelde van zijn ongevallen. De **kleur toont de score** met een vaste schaal die overal hetzelfde is (dof geel < 20, dof oranje 20-24, zalm 25-29, karmozijn 30-49, dof paars ≥ 50; de laatste 5 klassen van een Datawrapper-schaal), met een legende onder elke kaart.
-- **Extra voorwaarden (optioneel, in het tandwiel):** een plek met enkel lichtgewonden telt niet mee; minimum voor licht, zwaar en doden; minimum zwaar en doden combineren met *en* of *of*.
-- **Twee weergaven:** *Vaste locaties, aantallen per jaar* (voor evolutie van dezelfde plek) en *Elk jaar apart*.
+- **Hard coded sinds 2026-11-11:** alle instellingen van een zwart punt liggen vast als constanten bovenaan `app.py` (punten 1/3/5, 50 m, vanaf 15 punten, minstens 3 ongevallen, standaardcoördinaten uitgesloten). Verwijderd: het tandwiel, de extra voorwaarden en de weergave *Elk jaar apart*; de weergave is *vaste locaties, aantallen per jaar*.
 
 ### App (Streamlit)
 - Bestand `app.py`, starten met `streamlit run app.py` (we draaien op poort 1234). Geen zijbalk.
-- De app heet **Ongevallen**. In het tabblad **Kaart** staan alle keuzes (weergave, methode, afstand, punten, drempel, extra voorwaarden) in één menu ⚙️; bovenaan enkel de filters (gewest, provincie, gemeente, periode van 3 jaar met pijltjes; geen keuze voor het type: dat zit in de punten).
+- De app heet **Ongevallen**. In het tabblad **Kaart** staat bovenaan enkel een rij filters (de instelling van een zwart punt ligt vast, geen menu ⚙️ meer) (gewest, provincie, gemeente, periode van 3 jaar met pijltjes; geen keuze voor het type: dat zit in de punten).
 - Onder de kaart staat een **tabel met het aantal zwarte punten in de gekozen periode**, in 2 afgebakende blokken: Gewesten en Provincies, elk met onderaan een rij **Totaal** (= België, altijd heel België) (doffer grijs, niet vet, cursief); de kolomnamen staan in vet en wit.
 - Vlak onder de grote kaart in **Kaart**: keuzelijst voor gemeente (typbaar) en een tabel van 5 rijen met zwarte punten; de cirkels hebben als straal de zoekafstand. Klik op een rij: eronder verschijnt een **ingezoomde kaart** met de individuele ongevallen (geel = lichtgewonden, oranje = zwaargewonden, rood = doden). De tabel is te sorteren op **Score** of **Locatie** (gemeente, dan noord naar zuid).
-- Onderaan **Data View**: lijst met plekken waar minstens 10 ongevallen exact dezelfde coördinaat hebben (207), om standaardcoördinaten (stadhuis Antwerpen 96 en Charleroi 98 ongevallen, enkel 2022) na te kijken. **Genomen keuze:** `clean_data.py` markeert standaardcoördinaten als verdacht (≥ 10 ongevallen op één coördinaat in één jaar, dat jaar ≥ 80 % van de plek; 12 plekken, 330 ongevallen). In het tandwiel sluit een schakelaar (standaard aan) ze uit voor de zwarte punten en Evolutie; ze blijven in alle andere tellingen en de ranglijst. Controle in `data/plekken_controle.csv` en `data/gemeentehuizen.csv`. **Open punt:** ongevallen met gemeente Luik op coördinaten in Brussel en bij Bergen (zie `aanames.txt`).
-- Het tabblad **Data View** staat in een los script `data_view.py`; wis dat bestand en de app toont enkel Kaart en Evolutie.
-- Tabbladen **Kaart** (eerst), **Evolutie** en **Data View**. Kaart en Data View hebben eigen filters bovenaan. Kaart toont enkel info over zwarte punten.
-- **Evolutie:** 3 lijngrafieken (België met Totaal en de 3 gewesten; de provincies van Vlaanderen; de provincies van Wallonië) met het aantal zwarte punten per periode van 3 jaar, benoemd naar het eindjaar (2019 = 2017-2019 ... 2024 = 2022-2024). Gebruikt de instellingen van het tandwiel in de Kaart. Niet gecorrigeerd voor de stijgende dekking van de coördinaten. Bedekken lijnstukken elkaar (zelfde begin- en eindpunt in dezelfde grafiek), dan worden ze automatisch gestippeld, met de streepjes om en om (nu: Luxemburg en Waals-Brabant, beide overal op 0); enkel kruisen telt niet. Reeksen zet je aan of uit door in de legende te klikken; de stippeling wordt dan opnieuw bekeken met de zichtbare reeksen.
-- **Data View** bevat bovenaan een uitklapbare data viewer (alle rijen van de selectie, sorteren, zoeken, filteren op kolomwaarden), daaronder het overzicht per type, de ranglijst, en onderaan de **foute coördinaten** en de **zwarte punten op een grens**.
+- Controlelijst (stond onderaan Data View, niet meer in de app): plekken waar minstens 10 ongevallen exact dezelfde coördinaat hebben (207), om standaardcoördinaten (stadhuis Antwerpen 96 en Charleroi 98 ongevallen, enkel 2022) na te kijken. **Genomen keuze:** `clean_data.py` markeert standaardcoördinaten als verdacht (≥ 10 ongevallen op één coördinaat in één jaar, dat jaar ≥ 80 % van de plek; 12 plekken, 330 ongevallen). Ze worden altijd uitgesloten voor de zwarte punten en Evolutie; ze blijven in alle andere tellingen. Controle in `data/plekken_controle.csv` en `data/gemeentehuizen.csv`. **Open punt:** ongevallen met gemeente Luik op coördinaten in Brussel en bij Bergen (zie `aanames.txt`).
+- Het tabblad **Data View** is op 2026-11-11 uit de app gehaald; `data_view.py` blijft voorlopig staan, ongebruikt.
+- Tabbladen **Kaart** (eerst) en **Evolutie**, elk met eigen filters bovenaan. Kaart toont enkel info over zwarte punten.
+- **Evolutie:** 3 lijngrafieken (België met Totaal en de 3 gewesten; de provincies van Vlaanderen; de provincies van Wallonië) met het aantal zwarte punten per periode van 3 jaar, benoemd naar het eindjaar (2019 = 2017-2019 ... 2024 = 2022-2024). Gebruikt dezelfde vaste instelling als de Kaart. Niet gecorrigeerd voor de stijgende dekking van de coördinaten. Bedekken lijnstukken elkaar (zelfde begin- en eindpunt in dezelfde grafiek), dan worden ze automatisch gestippeld, met de streepjes om en om (nu: Luxemburg en Waals-Brabant, beide overal op 0); enkel kruisen telt niet. Reeksen zet je aan of uit door in de legende te klikken; de stippeling wordt dan opnieuw bekeken met de zichtbare reeksen.
+- Wat in **Data View** stond (data viewer, overzicht per type, ranglijst van gemeenten, **foute coördinaten**, **zwarte punten op een grens**) zit niet meer in de app; zie `aanames.txt` voor de uitkomsten.
 - Onder elke tabel, kaart en grafiek staat **"weergegeven / totaal geregistreerd"** in het gekozen gebied (bv. 253.651 / 289.532 = 87,6 % voor kaarten in heel België); onderaan staat de **bron** (Statbel).
-- **Data View** bevat ook een ranglijst van gemeenten op puntenscore, genummerd over heel België: bij een gewest of provincie alle gemeenten, bij een gemeente de top 5, de onderste 5 en 5 erboven en eronder.
 
 ## Open punten
 - [x] De **officiële definitie van "zwart punt"** opzoeken (2026-11-09: Vlaamse puntentelling overgenomen, zie boven).
 - [ ] Een **afstand of segmentdefinitie** van Vlaanderen zoeken (de pagina noemt er geen) en **slachtoffers per ongeval** zoeken (andere Statbel-dataset?) zodat we per slachtoffer kunnen tellen (en eventueel de factor 1,7 kunnen toepassen).
-- [ ] De app **opruimen**: we gebruiken enkel de puntenscore; de methode "Aantal ongevallen" en andere opties staan er om fouten te vinden en kunnen weg.
+- [x] De app **opruimen** (2026-11-11): instellingen hard coded, methode "Aantal ongevallen", extra voorwaarden en "Elk jaar apart" verwijderd, Data View uit de app. Nog te doen: `data_view.py` wissen als je het niet meer nodig hebt.
 - [ ] De drempel **15 punten** komt uit de telling per slachtoffer; onderzoeken wat een passende drempel is bij onze telling per ongeval.
 - [ ] Het verschil tussen "Met doden" (code 1) en "Dodelijk gewonden" (code 2) navragen; nu samengevoegd.
 - [ ] **Eerlijk vergelijken over de jaren:** rekening houden met de verschillende dekking van de coördinaten.
