@@ -24,8 +24,8 @@ except ImportError:
 
 # ---------- 1. Data klaarzetten ----------
 
-st.set_page_config(page_title="Ongevallen", layout="wide", initial_sidebar_state="collapsed")
-st.title("Ongevallen")
+st.set_page_config(page_title="Gevaarlijke Punten", layout="wide", initial_sidebar_state="collapsed")
+st.title("Gevaarlijke Punten")
 
 
 @st.cache_data
