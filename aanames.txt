@@ -20,8 +20,9 @@ Bijgewerkt: 2026-11-11
 - We gebruiken de Nederlandse tekstkolommen (TX_*_NL).
 - Brussel heeft geen provincie in de bron. We vullen "Geen provincie (Brussel)" in en laten het voorvoegsel
   "Provincie " weg bij de andere provincies.
-- Alleen kolommen die de app nodig heeft bleven bewaard: jaar, maand, uur, nis, gewest, provincie, gemeente,
-  class_accident (+code) en de coördinaten. Weer, wegtype, weggebruikers enz. zitten nog niet in de clean-versie.
+- Alleen kolommen die de app nodig heeft bleven bewaard: jaar, nis, gewest, provincie, gemeente,
+  class_accident (+code) en de coördinaten. We rekenen enkel per jaar, dus maand en uur zijn weggelaten.
+  Weer, wegtype, weggebruikers enz. zitten nog niet in de clean-versie.
 
 
 2. TYPES ONGEVAL (class_accident) EN GROEPEN
@@ -240,7 +241,7 @@ veranderd. Wijzig ze nooit stil: leg een wijziging eerst voor.
 6. RANGLIJST VAN GEMEENTEN (niet meer in de app)
 ------------------------------------------------
 - De ranglijst stond in het tabblad Data View en zit sinds 2026-11-11 niet meer in de app (zie 7). Hij rangschikte
-  de gemeenten op puntenscore (zie 4), zonder correctie voor inwonersaantal. De werkwijze staat nog in data_view.py.
+  de gemeenten op puntenscore (zie 4), zonder correctie voor inwonersaantal. Het bestand data_view.py is op 2026-11-16 gewist.
 
 
 7. FILTERS EN WEERGAVE
@@ -317,7 +318,7 @@ veranderd. Wijzig ze nooit stil: leg een wijziging eerst voor.
   een ander resultaat geven. De verhouding weergegeven/totaal onder de kaart blijft voor het gekozen gebied.
 - Het tabblad "Data View" (data viewer, overzicht per type, ranglijst van gemeenten, foute coördinaten, zwarte punten op
   een grens en plekken met veel ongevallen op één coördinaat) zit sinds 2026-11-11 niet meer in de app. Het bestand
-  data_view.py staat er voorlopig nog, maar wordt niet meer gebruikt en werkt niet meer zonder aanpassing.
+  data_view.py is op 2026-11-16 gewist.
 - Er is geen zijbalk. De instelling voor zwarte punten ligt vast (zie 5.2); er is geen tandwiel meer.
 - Poort van de app: 1234 (streamlit run app.py --server.port 1234).
 - Onder elke tabel, kaart en grafiek staat de verhouding "weergegeven / totaal geregistreerd" (functie toon_dekking

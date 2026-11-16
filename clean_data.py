@@ -24,8 +24,6 @@ CLEAN = MAP / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
 
 KOLOMMEN = {
     "DT_YEAR_COLLISION": "jaar",
-    "DT_MONTH_COLLISION": "maand",
-    "DT_TIME": "uur",
     "CD_NIS": "nis",
     "TX_RGN_COLLISION_NL": "gewest",
     "TX_PROV_COLLISION_NL": "provincie",
@@ -53,8 +51,6 @@ def main():
     df = df.rename(columns=KOLOMMEN)
 
     df["jaar"] = df["jaar"].astype("int16")
-    df["maand"] = df["maand"].astype("int8")
-    df["uur"] = pd.to_numeric(df["uur"], errors="coerce").astype("Int8")
     # coördinaten hebben een decimale komma: '149732,99' -> 149732.99
     for kol in ("x_lambert72", "y_lambert72"):
         df[kol] = pd.to_numeric(df[kol].str.replace(",", ".", regex=False), errors="coerce")

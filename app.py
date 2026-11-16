@@ -2,32 +2,27 @@
 
 Starten:  streamlit run app.py
 """
-import heapq
-from pathlib import Path
 from types import SimpleNamespace
 
 import altair as alt
-import numpy as np
 import pandas as pd
 import streamlit as st
-from pyproj import Transformer
-from scipy.spatial import cKDTree
+
+import clean_data
+import data_laden
+import zwarte_punten as zp
+from zwarte_punten import AFSTAND, DODEN, LICHT, PERIODE_JAREN, PUNT_DODEN, PUNT_LICHT, PUNT_ZWAAR, SCORE_DREMPEL, ZWAAR
 
 try:
     import pydeck as pdk  # kaart met hover en klik; staat in .venv en requirements.txt, niet in syntra-ds
 except ImportError:
     pdk = None  # zonder pydeck valt de kaart terug op de gewone st.map (zonder hover)
 
-DATA = Path(__file__).parent / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
+# ---------- Opbouw van dit bestand ----------
+# De berekeningen staan NIET hier: data laden in data_laden.py, zwarte punten in zwarte_punten.py (zonder Streamlit).
+# app.py doet enkel: 1. data klaarzetten  2. filters  3. tabblad Kaart  4. tabblad Evolutie
 
-# class_accident_code -> groep voor de scores en zwarte punten
-LICHT, ZWAAR, DODEN = [4], [3], [1, 2]
-
-# Vaste instelling van een zwart punt (zie aanames.txt onderdeel 5). Wijzig ze nooit stil: leg een wijziging eerst voor.
-# Punten per ONGEVAL (niet per slachtoffer: de bron heeft geen slachtoffers), volgens het zwaarste type.
-PUNT_LICHT, PUNT_ZWAAR, PUNT_DODEN = 1, 3, 5
-AFSTAND = 50  # meter: ongevallen binnen deze afstand worden samengenomen tot één zwart punt
-SCORE_DREMPEL = 15  # een zwart punt heeft minstens zoveel punten (dus ook minstens 3 ongevallen: 3 x 5 = 15)
+# ---------- 1. Data klaarzetten ----------
 
 st.set_page_config(page_title="Ongevallen", layout="wide", initial_sidebar_state="collapsed")
 st.title("Ongevallen")
@@ -36,64 +31,23 @@ st.title("Ongevallen")
 @st.cache_data
 def laad_data(gewijzigd):
     """`gewijzigd` is enkel een sleutel: verandert het bestand, dan wordt opnieuw ingelezen."""
-    return pd.read_parquet(DATA)
+    return data_laden.lees_data()
 
 
-@st.cache_data(show_spinner="Zwarte punten zoeken...")
-def zoek_clusters(x, y, gewicht, straal, drempel):
-    """Geeft per ongeval een clusternummer (-1 = geen zwart punt).
-
-    Voor elk ongeval tellen we het gewicht van alle ongevallen binnen `straal` meter (met gewicht 1
-    voor iedereen is dat gewoon het aantal). Het ongeval met de hoogste som vormt een cluster met
-    die buren; die worden weggenomen en we herhalen dat zolang een som minstens `drempel` is.
-    Zo overlappen clusters niet.
-    """
-    xy = np.column_stack([x, y])
-    buren = cKDTree(xy).query_ball_point(xy, straal)  # inclusief het ongeval zelf
-    tel = np.array([gewicht[b].sum() for b in buren], dtype=float)
-    weg = np.zeros(len(xy), dtype=bool)
-    cluster = np.full(len(xy), -1)
-
-    drempel -= 1e-9  # gewichten als 1,7 of 5,1 geven afrondingsfoutjes: 15 mag niet als 14,999999999 tellen
-    wachtrij = [(-t, i) for i, t in enumerate(tel) if t >= drempel]
-    heapq.heapify(wachtrij)
-    nummer = 0
-    while wachtrij:
-        neg, i = heapq.heappop(wachtrij)
-        if weg[i]:
-            continue
-        if -neg != tel[i]:  # verouderde score: opnieuw inschuiven met de huidige
-            if tel[i] >= drempel:
-                heapq.heappush(wachtrij, (-tel[i], i))
-            continue
-        leden = [j for j in buren[i] if not weg[j]]
-        cluster[leden] = nummer
-        nummer += 1
-        weg[leden] = True
-        for j in leden:
-            for k in buren[j]:
-                if not weg[k]:
-                    tel[k] -= gewicht[j]
-    return cluster
+# Dezelfde functie als in zwarte_punten.py, maar met een cache van Streamlit: dezelfde ongevallen en instelling geven
+# meteen hetzelfde resultaat terug zonder opnieuw te rekenen.
+zoek_clusters = st.cache_data(show_spinner="Zwarte punten zoeken...")(zp.zoek_clusters)
 
 
-import clean_data
-
-RAW_AANWEZIG = clean_data.RAW.exists()  # op Streamlit Cloud niet: de ruwe data staat niet in git, de parquet wel
-
-# Ruwe data aanwezig, en de opgeschoonde data ontbreekt of is ouder dan de ruwe data of het cleaningscript? Dan opnieuw maken.
-# Zonder ruwe data gebruiken we de parquet zoals ze is (bestandstijden na een git clone zeggen niets).
-if RAW_AANWEZIG and (
-    not DATA.exists()
-    or DATA.stat().st_mtime < max(clean_data.RAW.stat().st_mtime, Path(clean_data.__file__).stat().st_mtime)
-):
+# Opschonen enkel als het nodig is (zie data_laden.opschonen_nodig); het opschonen zelf doet clean_data.py.
+if data_laden.opschonen_nodig():
     with st.spinner("Data opschonen uit data/raw (enkele minuten, enkel de eerste keer)..."):
         clean_data.main()
-elif not DATA.exists():
+elif not data_laden.DATA.exists():
     st.error(f"Opgeschoonde data niet gevonden en ook geen ruwe data. Plaats OPENDATA_MAP_2017-2024.txt in `{clean_data.RAW.parent}`.")
     st.stop()
 
-df = laad_data(DATA.stat().st_mtime)
+df = laad_data(data_laden.DATA.stat().st_mtime)
 
 # volgorde van de code: 1 = ernstigst
 TYPES = list(
@@ -102,13 +56,8 @@ TYPES = list(
 JAAR_MIN, JAAR_MAX = int(df["jaar"].min()), int(df["jaar"].max())
 
 
-def punten_per_ongeval(p):
-    """Score van elk ongeval: de punten van zijn type (1 / 3 / 5, zoals bij de Vlaamse telling voor gevaarlijke punten)."""
-    code = p["class_accident_code"].astype(int)
-    return np.select([code.isin(DODEN), code.isin(ZWAAR)], [PUNT_DODEN, PUNT_ZWAAR], default=PUNT_LICHT).astype(float)
 
-
-PERIODE_JAREN = 3  # Vlaanderen rekent gevaarlijke punten op 3 jaar ongevallendata
+# ---------- 2. Filters ----------
 
 
 def schuif_periode(key, stap):
@@ -185,33 +134,7 @@ def toon_dekking(weergegeven, totaal, plaats, uitleg=""):
 tab_punten, tab_evolutie = st.tabs(["Kaart", "Evolutie"])
 
 
-# ---------- Tab Kaart: zwarte punten ----------
-
-
-def bouw_spots(punten, cluster):
-    """Telt per cluster de ongevallen per type, de puntenscore en de gemiddelde plaats.
-
-    De score is de puntenscore (5 / 3 / 1 per ongeval); de kleur op de kaart volgt die score.
-    Geeft (ongevallen die in een cluster zitten, tabel met één rij per cluster)."""
-    leden = punten.assign(cluster=cluster, punt=punten_per_ongeval(punten))
-    leden = leden[leden["cluster"] >= 0]
-    code = leden["class_accident_code"].astype(int)
-    leden = leden.assign(licht=code.isin(LICHT), zwaar=code.isin(ZWAAR), doden=code.isin(DODEN))
-    spots = leden.groupby("cluster").agg(
-        totaal=("cluster", "size"),
-        score=("punt", "sum"),
-        licht=("licht", "sum"),
-        zwaar=("zwaar", "sum"),
-        doden=("doden", "sum"),
-        lat=("lat", "mean"),
-        lon=("lon", "mean"),
-        gemeente=("gemeente", lambda s: s.value_counts().index[0]),
-        provincie=("provincie", lambda s: s.value_counts().index[0]),
-        gewest=("gewest", lambda s: s.value_counts().index[0]),
-    )
-    spots["score"] = spots["score"].round(1)
-    return leden, spots
-
+# ---------- 3. Tabblad Kaart: zwarte punten ----------
 
 
 # Vaste kleurschaal voor de score van een zwart punt, overal dezelfde (elk tabblad, weergave, periode en gebied):
@@ -242,19 +165,6 @@ def toon_legende():
         "<small><b>Score van het zwarte punt (punten):</b> " + " &nbsp;·&nbsp; ".join(delen) + "</small>",
         unsafe_allow_html=True,
     )
-
-
-def in_gebied(spots, filt):
-    """Houdt enkel de zwarte punten over in het gekozen gewest, de gekozen provincie en gemeente.
-
-    Een punt hoort bij het gebied waar de meeste van zijn ongevallen liggen."""
-    if filt.gewest != "Alle gewesten":
-        spots = spots[spots["gewest"] == filt.gewest]
-    if filt.provincie != "Alle provincies":
-        spots = spots[spots["provincie"] == filt.provincie]
-    if filt.gemeente != "Alle gemeenten":
-        spots = spots[spots["gemeente"] == filt.gemeente]
-    return spots
 
 
 def toon_telling(spots):
@@ -322,7 +232,7 @@ def toon_punt_detail(leden, punt_id):
     """Ingezoomde kaart en tabel van de ongevallen in één zwart punt.
 
     `leden` = de ongevallen in zwarte punten (kolom `cluster`), `punt_id` = het clusternummer."""
-    ongevallen = leden[leden["cluster"] == punt_id].sort_values(["jaar", "maand"])
+    ongevallen = leden[leden["cluster"] == punt_id].sort_values("jaar")
     kleur_van_code = {c: k for _, k, codes in ERNST_KLEUREN for c in codes}
     ongevallen = ongevallen.assign(kleur=ongevallen["class_accident_code"].astype(int).map(kleur_van_code).fillna("#888888"))
     st.markdown(
@@ -334,7 +244,7 @@ def toon_punt_detail(leden, punt_id):
     )
     st.map(ongevallen, latitude="lat", longitude="lon", color="kleur", size=3)
     st.dataframe(
-        ongevallen[["gemeente", "jaar", "maand", "uur", "class_accident", "x_lambert72", "y_lambert72", "lat", "lon"]],
+        ongevallen[["gemeente", "jaar", "class_accident", "x_lambert72", "y_lambert72", "lat", "lon"]],
         width="stretch",
         hide_index=True,
         column_config={c: st.column_config.NumberColumn(format="%.1f") for c in ("x_lambert72", "y_lambert72")}
@@ -461,36 +371,17 @@ with tab_punten:
 
     sorteer = ["score", "doden", "zwaar"]  # volgorde van de tabellen
 
-    def spots_voor_periode(p):
-        """Zwarte punten (vaste instelling, zie bovenaan) over één periode van ongevallen, gezocht in heel België.
-
-        Wordt ook door het tabblad Evolutie gebruikt, voor elke periode van 3 jaar."""
-        cluster = zoek_clusters(
-            p["x_lambert72"].to_numpy(), p["y_lambert72"].to_numpy(), punten_per_ongeval(p), AFSTAND, SCORE_DREMPEL
-        )
-        return bouw_spots(p, cluster)[1]
-
     basis_kolommen = ["gemeente", "score", "totaal", "licht", "zwaar", "doden"]
 
     plaats2 = plaats_label(f2)
     alle_jaren = list(range(jaren[0], jaren[1] + 1))
-    bruikbaar = ["ok", "hersteld"]
-
-    def zonder_standaard(p):
-        """Laat de verdachte standaardcoördinaten weg (bv. stadhuizen, zie clean_data.py): ze tellen niet mee voor de
-        zwarte punten, wel voor alle andere tellingen."""
-        return p[~p["verdacht_coord"]]
-
     # Zwarte punten zoeken in heel België (alle types ongevallen, via de punten); de filters hierboven bepalen
     # daarna enkel welke punten je op de kaart en in de lijst ziet. Zo klopt de tabel hieronder altijd voor België.
-    punten_nl = zonder_standaard(df[df["jaar"].between(*jaren) & df["coord_status"].isin(bruikbaar)]).reset_index(drop=True)
-    punten = zonder_standaard(sel[sel["coord_status"].isin(bruikbaar)])  # enkel het gekozen gebied; voor de verhouding weergegeven/totaal
+    punten_nl = zp.bruikbare_ongevallen(df[df["jaar"].between(*jaren)]).reset_index(drop=True)
+    punten = zp.bruikbare_ongevallen(sel)  # enkel het gekozen gebied; voor de verhouding weergegeven/totaal
     dek = (len(punten), len(sel), plaats2)
 
-    cluster = zoek_clusters(
-        punten_nl["x_lambert72"].to_numpy(), punten_nl["y_lambert72"].to_numpy(), punten_per_ongeval(punten_nl), AFSTAND, SCORE_DREMPEL
-    )
-    leden, spots_nl = bouw_spots(punten_nl, cluster)
+    leden, spots_nl = zp.zoek_spots(punten_nl, zoek_clusters)
     per_jaar = leden.groupby(["cluster", "jaar"]).size().unstack(fill_value=0).reindex(columns=alle_jaren, fill_value=0)
     per_jaar.columns = [str(j) for j in per_jaar.columns]
     spots_nl = spots_nl.join(per_jaar)
@@ -506,7 +397,15 @@ with tab_punten:
             "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten; deze tabel telt heel België.",
         )
 
-    spots = in_gebied(spots_nl, f2).sort_values(sorteer, ascending=False)
+    def gekozen(waarde, alle):
+        return None if waarde == alle else waarde
+
+    spots = zp.in_gebied(
+        spots_nl,
+        gekozen(f2.gewest, "Alle gewesten"),
+        gekozen(f2.provincie, "Alle provincies"),
+        gekozen(f2.gemeente, "Alle gemeenten"),
+    ).sort_values(sorteer, ascending=False)
 
     if spots.empty:
         st.info("Geen zwarte punten in dit gebied en deze periode.")
@@ -536,7 +435,7 @@ with tab_punten:
             "punt hoort bij het gebied waar de meeste van zijn ongevallen liggen. De tabel bovenaan telt altijd heel België."
         )
 
-# ---------- Tab Evolutie ----------
+# ---------- 4. Tabblad Evolutie ----------
 GEWEST_NAAM = {"Vlaams Gewest": "Vlaanderen", "Brussels Hoofdstedelijk Gewest": "Brussels Gewest", "Waals Gewest": "Wallonië"}
 
 
@@ -691,25 +590,17 @@ def toon_lijngrafiek(titel, reeksen, periodes, dekking=None):
 with tab_evolutie:
     # Voor elke periode van 3 jaar (2017-2019, 2018-2020, ..., 2022-2024) zoeken we de zwarte punten in heel België,
     # met dezelfde vaste instelling als in het tabblad Kaart.
-    periodes = [(eind, eind - PERIODE_JAREN + 1) for eind in range(JAAR_MIN + PERIODE_JAREN - 1, JAAR_MAX + 1)]
-    per_periode = []
-    for eind, begin in periodes:
-        in_periode = df["jaar"].between(begin, eind)
-        p = zonder_standaard(df[in_periode & df["coord_status"].isin(["ok", "hersteld"])]).reset_index(drop=True)
-        per_periode.append({"spots": spots_voor_periode(p), "met_coord": len(p), "alle": int(in_periode.sum())})
+    periodes = zp.periodes_van(JAAR_MIN, JAAR_MAX)
+    per_periode = zp.spots_per_periode(df, periodes, zoek_clusters)
 
     def aantallen(kolom=None, waarde=None):
-        """Aantal zwarte punten per periode, voor heel België of voor één gewest of provincie."""
-        return [
-            len(x["spots"]) if kolom is None else int((x["spots"][kolom] == waarde).sum()) for x in per_periode
-        ]
+        return zp.aantal_per_periode(per_periode, kolom, waarde)
 
     def provincies_van(gewest):
         return sorted(df.loc[df["gewest"] == gewest, "provincie"].unique())
 
-    # Heel België: eerst het % per jaar, dan per periode het gemiddelde van de 3 jaren (elk jaar telt even zwaar mee)
-    procent_per_jaar = df["coord_status"].isin(["ok", "hersteld"]).groupby(df["jaar"]).mean() * 100
-    dekking = [procent_per_jaar.loc[begin:eind].mean() for eind, begin in periodes]
+    # Heel België: % ongevallen met bruikbare coördinaten, per periode het gemiddelde van de 3 jaren
+    dekking = zp.dekking_per_periode(df, periodes)
     toon_lijngrafiek(
         "België",
         {"Totaal": aantallen()} | {naam: aantallen("gewest", gewest) for gewest, naam in GEWEST_NAAM.items()},
@@ -730,7 +621,7 @@ with tab_evolutie:
     )
 
     toon_dekking(
-        int(df["coord_status"].isin(["ok", "hersteld"]).sum()),
+        int(df["coord_status"].isin(zp.BRUIKBAAR).sum()),
         len(df),
         "België",
         "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten (2017-2024).",
