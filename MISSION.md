@@ -9,6 +9,3 @@ Wij gaan met openbare data op zoek naar die plekken in het Belgische verkeer en 
 - **Data:** de open data van Statbel over verkeersongevallen in België, 2017-2024 (289.532 ongevallen).
 - **Python:** voor het opschonen en bewerken van de data en het zoeken van de gevaarlijke punten.
 - **Streamlit:** voor het visualiseren in een interactieve app, met een kaart en grafieken van de evolutie.
-
-## Meer details
-Alle keuzes en aannames staan uitgeschreven in [`aanames.txt`](aanames.txt).

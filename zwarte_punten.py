@@ -1,7 +1,7 @@
 """Verwerking van de zwarte punten: scores, clusters en tellingen per periode.
 
 Dit bestand bevat enkel berekeningen (geen Streamlit); `app.py` toont de resultaten.
-De instelling van een zwart punt staat hier bovenaan (zie aanames.txt onderdeel 5). Wijzig ze nooit stil.
+De instelling van een zwart punt staat hier bovenaan. Wijzig ze nooit stil.
 """
 import heapq
 
