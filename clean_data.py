@@ -18,6 +18,11 @@ Y_BEREIK = (20_000, 250_000)
 VERDACHT_MIN = 10
 VERDACHT_AANDEEL = 0.8
 
+# Handmatig nagekeken plekken die het patroon halen maar toch een echte ongevalsplek zijn: (x, y, jaar). Ze tellen WEL mee.
+ECHTE_PLEKKEN = [
+    (149156.02785, 169317.266031, 2023),  # Stefaniatunnel, Elsene: 10 ongevallen met lichtgewonden
+]
+
 MAP = Path(__file__).parent  # paden zijn vast, ongeacht vanuit welke map je het script start
 RAW = MAP / "data" / "raw" / "OPENDATA_MAP_2017-2024.txt"
 CLEAN = MAP / "data" / "OPENDATA_MAP_2017-2024_clean.parquet"
@@ -91,6 +96,15 @@ def main():
     verdacht = per_plek_jaar[
         (per_plek_jaar["n_jaar"] >= VERDACHT_MIN) & (per_plek_jaar["n_jaar"] / per_plek_jaar["n_plek"] >= VERDACHT_AANDEEL)
     ]
+    # De handmatig nagekeken echte plekken (ECHTE_PLEKKEN) vallen er weer uit.
+    echt = np.zeros(len(verdacht), dtype=bool)
+    for x, y, jaar in ECHTE_PLEKKEN:
+        echt |= (
+            np.isclose(verdacht["x_lambert72"], x, rtol=0, atol=0.01)
+            & np.isclose(verdacht["y_lambert72"], y, rtol=0, atol=0.01)
+            & (verdacht["jaar"] == jaar)
+        ).to_numpy()
+    verdacht = verdacht[~echt]
     sleutel = df[["x_lambert72", "y_lambert72", "jaar"]].merge(
         verdacht[["x_lambert72", "y_lambert72", "jaar"]].assign(verdacht_coord=True), how="left", on=["x_lambert72", "y_lambert72", "jaar"]
     )
