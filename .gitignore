@@ -33,3 +33,6 @@ data/plekken_controle.csv
 
 # Wel in de repo: de gemeentehuizen (uitzondering op data/*.csv hierboven)
 !data/gemeentehuizen.csv
+
+# Presentatie (slides en spreeknotities): enkel lokaal
+presentatie/
