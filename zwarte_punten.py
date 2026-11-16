@@ -21,14 +21,20 @@ SCORE_DREMPEL = 15  # een zwart punt heeft minstens zoveel punten (dus ook minst
 PERIODE_JAREN = 3  # Vlaanderen rekent gevaarlijke punten op 3 jaar ongevallendata
 BRUIKBAAR = ["ok", "hersteld"]  # coord_status waarvan de coördinaten bruikbaar zijn
 
+# De clusterfunctie rekent enkel met gehele getallen (exact, geen afrondingsfouten). Kies je ooit andere punten
+# (bv. 1,7 x 5), dan moet zoek_clusters opnieuw worden aangepast.
+if not all(isinstance(w, int) for w in (PUNT_LICHT, PUNT_ZWAAR, PUNT_DODEN, SCORE_DREMPEL)):
+    raise TypeError("PUNT_LICHT, PUNT_ZWAAR, PUNT_DODEN en SCORE_DREMPEL moeten gehele getallen zijn.")
+
 
 # ---------- 2. Score per ongeval ----------
 
 
 def punten_per_ongeval(p):
-    """Score van elk ongeval: de punten van zijn type (1 / 3 / 5, zoals bij de Vlaamse telling voor gevaarlijke punten)."""
+    """Score van elk ongeval als geheel getal: de punten van zijn type (1 / 3 / 5, zoals bij de Vlaamse telling voor
+    gevaarlijke punten)."""
     code = p["class_accident_code"].astype(int)
-    return np.select([code.isin(DODEN), code.isin(ZWAAR)], [PUNT_DODEN, PUNT_ZWAAR], default=PUNT_LICHT).astype(float)
+    return np.select([code.isin(DODEN), code.isin(ZWAAR)], [PUNT_DODEN, PUNT_ZWAAR], default=PUNT_LICHT).astype(np.int64)
 
 
 # ---------- 3. Welke ongevallen doen mee ----------
@@ -56,18 +62,17 @@ def bruikbare_ongevallen(p):
 def zoek_clusters(x, y, gewicht, straal, drempel):
     """Geeft per ongeval een clusternummer (-1 = geen zwart punt).
 
-    Voor elk ongeval tellen we het gewicht van alle ongevallen binnen `straal` meter (met gewicht 1
-    voor iedereen is dat gewoon het aantal). Het ongeval met de hoogste som vormt een cluster met
+    Voor elk ongeval tellen we het gewicht (een geheel getal) van alle ongevallen binnen `straal` meter (met
+    gewicht 1 voor iedereen is dat gewoon het aantal). Het ongeval met de hoogste som vormt een cluster met
     die buren; die worden weggenomen en we herhalen dat zolang een som minstens `drempel` is.
     Zo overlappen clusters niet.
     """
     xy = np.column_stack([x, y])
     buren = cKDTree(xy).query_ball_point(xy, straal)  # inclusief het ongeval zelf
-    tel = np.array([gewicht[b].sum() for b in buren], dtype=float)
+    tel = np.array([gewicht[b].sum() for b in buren], dtype=np.int64)
     weg = np.zeros(len(xy), dtype=bool)
     cluster = np.full(len(xy), -1)
 
-    drempel -= 1e-9  # gewichten als 1,7 of 5,1 geven afrondingsfoutjes: 15 mag niet als 14,999999999 tellen
     wachtrij = [(-t, i) for i, t in enumerate(tel) if t >= drempel]
     heapq.heapify(wachtrij)
     nummer = 0
@@ -111,7 +116,6 @@ def bouw_spots(punten, cluster):
         provincie=("provincie", lambda s: s.value_counts().index[0]),
         gewest=("gewest", lambda s: s.value_counts().index[0]),
     )
-    spots["score"] = spots["score"].round(1)
     return leden, spots
 
 

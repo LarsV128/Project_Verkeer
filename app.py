@@ -271,7 +271,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     else:
         bollen = tabel[["lat", "lon", "code", "gemeente", "score", "totaal", "punt_id"]].assign(
             kleur=tabel["score"].map(lambda s: [int(score_kleur(s)[i : i + 2], 16) for i in (1, 3, 5)] + [200]),
-            score=tabel["score"].round(0).astype(int),
+            score=tabel["score"],
         )
         laag = pdk.Layer(
             "ScatterplotLayer",
