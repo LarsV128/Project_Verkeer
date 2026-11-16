@@ -22,3 +22,14 @@ uitleg_zwart_punt.ipynb
 
 # Virtuele omgeving met extra pakketten voor dit project (enkel pydeck)
 .venv/
+
+# Enkel lokaal (afspraken voor Claude Code, eigen notities, controlebestanden): niet in de repo
+CLAUDE.md
+.claude/
+aanames.txt
+beslissingslogboek.md
+uitleg_zwarte_punten.txt
+data/plekken_controle.csv
+
+# Wel in de repo: de gemeentehuizen (uitzondering op data/*.csv hierboven)
+!data/gemeentehuizen.csv
