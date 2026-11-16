@@ -19,7 +19,7 @@ except ImportError:
     pdk = None  # zonder pydeck valt de kaart terug op de gewone st.map (zonder hover)
 
 # ---------- Opbouw van dit bestand ----------
-# De berekeningen staan NIET hier: data laden in data_laden.py, zwarte punten in zwarte_punten.py (zonder Streamlit).
+# De berekeningen staan NIET hier: data laden in data_laden.py, gevaarlijke punten in zwarte_punten.py (zonder Streamlit).
 # app.py doet enkel: 1. data klaarzetten  2. filters  3. tabblad Kaart  4. tabblad Evolutie
 
 # ---------- 1. Data klaarzetten ----------
@@ -36,7 +36,7 @@ def laad_data(gewijzigd):
 
 # Dezelfde functie als in zwarte_punten.py, maar met een cache van Streamlit: dezelfde ongevallen en instelling geven
 # meteen hetzelfde resultaat terug zonder opnieuw te rekenen.
-zoek_clusters = st.cache_data(show_spinner="Zwarte punten zoeken...")(zp.zoek_clusters)
+zoek_clusters = st.cache_data(show_spinner="Gevaarlijke punten zoeken...")(zp.zoek_clusters)
 
 
 # Opschonen enkel als het nodig is (zie data_laden.opschonen_nodig); het opschonen zelf doet clean_data.py.
@@ -134,10 +134,10 @@ def toon_dekking(weergegeven, totaal, plaats, uitleg=""):
 tab_punten, tab_evolutie = st.tabs(["Kaart", "Evolutie"])
 
 
-# ---------- 3. Tabblad Kaart: zwarte punten ----------
+# ---------- 3. Tabblad Kaart: gevaarlijke punten ----------
 
 
-# Vaste kleurschaal voor de score van een zwart punt, overal dezelfde (elk tabblad, weergave, periode en gebied):
+# Vaste kleurschaal voor de score van een gevaarlijk punt, overal dezelfde (elk tabblad, weergave, periode en gebied):
 # (ondergrens, kleur, label). De grenzen volgen de verdeling van de scores: de meeste punten liggen tussen 15 en 25.
 # Kleuren: de laatste 5 klassen van de Datawrapper-schaal (dof geel naar dof paars), exact gemeten in de afbeelding.
 KLEURKLASSEN = [
@@ -162,13 +162,13 @@ def toon_legende():
     """Legende onder de kaart: dezelfde klassen en kleuren als de cirkels."""
     delen = [f"<span style='color:{k}; font-size:1.2em'>●</span> {label}" for _, k, label in KLEURKLASSEN]
     st.markdown(
-        "<small><b>Score van het zwarte punt (punten):</b> " + " &nbsp;·&nbsp; ".join(delen) + "</small>",
+        "<small><b>Score van het gevaarlijke punt (punten):</b> " + " &nbsp;·&nbsp; ".join(delen) + "</small>",
         unsafe_allow_html=True,
     )
 
 
 def toon_telling(spots):
-    """Tabellen met het aantal zwarte punten in de gekozen periode: per gewest en per provincie, elk met een rij
+    """Tabellen met het aantal gevaarlijke punten in de gekozen periode: per gewest en per provincie, elk met een rij
     Totaal (= heel België, dat zo impliciet vermeld wordt).
 
     Telt altijd heel België, ook als je hieronder op een gebied filtert."""
@@ -176,7 +176,7 @@ def toon_telling(spots):
         spots = pd.DataFrame({"gewest": [], "provincie": []})
 
     def tel(deel):
-        return {"Zwarte punten": len(deel)}
+        return {"Gevaarlijke punten": len(deel)}
 
     groepen = [
         ("Gewesten", [(g, spots[spots["gewest"] == g]) for g in sorted(df["gewest"].unique())]),
@@ -218,20 +218,20 @@ PROVINCIE_CODE = {
 
 
 def punt_code(provincie, punt_id):
-    """Korte code van een zwart punt, bv. ANT-006: de code van de provincie plus het clusternummer.
+    """Korte code van een gevaarlijk punt, bv. ANT-006: de code van de provincie plus het clusternummer.
 
     Het nummer is de volgorde waarin het punt gevonden werd; het verandert als je periode of instellingen wijzigt."""
     return f"{PROVINCIE_CODE.get(str(provincie), str(provincie)[:3].upper())}-{int(punt_id):03d}"
 
 
-# Kleur van een individueel ongeval in het ingezoomde zicht van een zwart punt (class_accident_code -> kleur)
+# Kleur van een individueel ongeval in het ingezoomde zicht van een gevaarlijk punt (class_accident_code -> kleur)
 ERNST_KLEUREN = [("lichtgewonden", "#f2c200", LICHT), ("zwaargewonden", "#ff7f0e", ZWAAR), ("doden", "#d62728", DODEN)]
 
 
 def toon_punt_detail(leden, punt_id):
-    """Ingezoomde kaart en tabel van de ongevallen in één zwart punt.
+    """Ingezoomde kaart en tabel van de ongevallen in één gevaarlijk punt.
 
-    `leden` = de ongevallen in zwarte punten (kolom `cluster`), `punt_id` = het clusternummer."""
+    `leden` = de ongevallen in gevaarlijke punten (kolom `cluster`), `punt_id` = het clusternummer."""
     ongevallen = leden[leden["cluster"] == punt_id].sort_values("jaar")
     kleur_van_code = {c: k for _, k, codes in ERNST_KLEUREN for c in codes}
     ongevallen = ongevallen.assign(kleur=ongevallen["class_accident_code"].astype(int).map(kleur_van_code).fillna("#888888"))
@@ -250,22 +250,22 @@ def toon_punt_detail(leden, punt_id):
         column_config={c: st.column_config.NumberColumn(format="%.1f") for c in ("x_lambert72", "y_lambert72")}
         | {c: st.column_config.NumberColumn(format="%.6f") for c in ("lat", "lon")},
     )
-    toon_dekking(len(ongevallen), len(ongevallen), "dit zwarte punt", "Alle ongevallen die bij dit zwarte punt tellen staan op de kaart en in de tabel.")
+    toon_dekking(len(ongevallen), len(ongevallen), "dit gevaarlijke punt", "Alle ongevallen die bij dit gevaarlijke punt tellen staan op de kaart en in de tabel.")
 
 
 def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     """`dek` = (weergegeven, totaal, plaats): ongevallen met coördinaten, alle ongevallen, en het gebied.
-    `leden` = de individuele ongevallen van deze zwarte punten (kolom `cluster`).
+    `leden` = de individuele ongevallen van deze gevaarlijke punten (kolom `cluster`).
     `onder_kaart` is een functie die direct onder de kaart iets toont (hier: de telling per gebied).
 
     Elke cirkel heeft als straal de zoekafstand (`straal`, vast: AFSTAND); de kleur toont de score
-    volgens vaste klassen. Vlak onder de kaart staat de keuze van één zwart punt (gemeente, sortering, tabel van
+    volgens vaste klassen. Vlak onder de kaart staat de keuze van één gevaarlijk punt (gemeente, sortering, tabel van
     5 rijen); het ingezoomde zicht van het aangeklikte punt staat daaronder."""
     tabel = spots.assign(punt_id=spots.index.to_numpy())  # het clusternummer zit in de index
     tabel["code"] = [punt_code(p, i) for p, i in zip(tabel["provincie"], tabel["punt_id"])]
     kolommen = ["code"] + kolommen
 
-    kaart_klik = None  # id van het zwarte punt dat je op de kaart aanklikt
+    kaart_klik = None  # id van het gevaarlijke punt dat je op de kaart aanklikt
     if pdk is None:
         st.map(tabel[["lat", "lon"]].assign(kleur=tabel["score"].map(score_kleur)), latitude="lat", longitude="lon", color="kleur", size=straal)
     else:
@@ -299,7 +299,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
             kaart_klik = gekozen_op_kaart[0]["punt_id"]
     toon_legende()
     toon_dekking(*dek, "De kaart gebruikt enkel ongevallen met bruikbare coördinaten.")
-    st.subheader("Selectie Zwart Punt")
+    st.subheader("Selectie Gevaarlijk Punt")
 
     # Het actieve punt: het laatst aangeklikte, op de kaart of in de tabel. Klik op de kaart: de keuzelijst springt
     # naar de gemeente van dat punt en het punt staat bovenaan de tabel (geel). Dit moet vóór de keuzelijst gebeuren.
@@ -320,7 +320,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
         "Gemeente (typ om te zoeken)",
         ["Alle gemeenten"] + sorted(tabel["gemeente"].astype(str).unique()),
         key="punt_gemeente",
-        help="Toont in de tabel hieronder enkel de zwarte punten van deze gemeente (de gemeente waar de meeste ongevallen van het punt liggen).",
+        help="Toont in de tabel hieronder enkel de gevaarlijke punten van deze gemeente (de gemeente waar de meeste ongevallen van het punt liggen).",
     )
     sortering = kies_sorteer.radio(
         "Sorteer op",
@@ -351,7 +351,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
         # naar boven springt), dan vervalt een oude rij-selectie. Anders wijst die naar een ander punt.
         key=f"tabel_punten_{abs(hash(tuple(tabel['punt_id'])))}",
     )
-    st.caption(f"{len(tabel)} zwarte punten. Klik op een rij (of op een bol op de kaart) om dat punt ingezoomd hieronder te zien.")
+    st.caption(f"{len(tabel)} gevaarlijke punten. Klik op een rij (of op een bol op de kaart) om dat punt ingezoomd hieronder te zien.")
     rijen = gekozen.selection.rows
     rij_id = tabel.at[rijen[0], "punt_id"] if rijen and rijen[0] < len(tabel) else None
     if rij_id is not None and rij_id != sessie.get("vorige_rij_id"):  # nieuwe klik in de tabel
@@ -363,7 +363,7 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
     if onder_kaart:
         onder_kaart()
     if onder_kaart is None or dek[2] != "België":  # bij heel België staat dezelfde regel al onder de telling (onder_kaart)
-        toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
+        toon_dekking(*dek, "De gevaarlijke punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
 
 
 with tab_punten:
@@ -376,7 +376,7 @@ with tab_punten:
 
     plaats2 = plaats_label(f2)
     alle_jaren = list(range(jaren[0], jaren[1] + 1))
-    # Zwarte punten zoeken in heel België (alle types ongevallen, via de punten); de filters hierboven bepalen
+    # Gevaarlijke punten zoeken in heel België (alle types ongevallen, via de punten); de filters hierboven bepalen
     # daarna enkel welke punten je op de kaart en in de lijst ziet. Zo klopt de tabel hieronder altijd voor België.
     punten_nl = zp.bruikbare_ongevallen(df[df["jaar"].between(*jaren)]).reset_index(drop=True)
     punten = zp.bruikbare_ongevallen(sel)  # enkel het gekozen gebied; voor de verhouding weergegeven/totaal
@@ -388,14 +388,14 @@ with tab_punten:
     spots_nl = spots_nl.join(per_jaar)
 
     def telling_onder_kaart():
-        """De tabel met het aantal zwarte punten (altijd heel België) onder de kaart."""
-        st.subheader(f"Aantal zwarte punten, periode {jaren[0]}-{jaren[1]}")
+        """De tabel met het aantal gevaarlijke punten (altijd heel België) onder de kaart."""
+        st.subheader(f"Aantal gevaarlijke punten, periode {jaren[0]}-{jaren[1]}")
         toon_telling(spots_nl)
         toon_dekking(
             len(punten_nl),
             int(df["jaar"].between(*jaren).sum()),
             "België",
-            "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten; deze tabel telt heel België.",
+            "Gevaarlijke punten zijn gezocht onder ongevallen met bruikbare coördinaten; deze tabel telt heel België.",
         )
 
     def gekozen(waarde, alle):
@@ -409,7 +409,7 @@ with tab_punten:
     ).sort_values(sorteer, ascending=False)
 
     if spots.empty:
-        st.info("Geen zwarte punten in dit gebied en deze periode.")
+        st.info("Geen gevaarlijke punten in dit gebied en deze periode.")
         telling_onder_kaart()
     else:
         toon_kaart_en_tabel(
@@ -419,7 +419,7 @@ with tab_punten:
     # Uitleg en vaste instelling staan onder de kaart, zodat boven de kaart enkel de tabel staat.
     with st.expander("ℹ️ Uitleg en vaste instelling"):
         st.markdown(
-            "Een **zwart punt** is hier een plek waar binnen een vaste afstand genoeg (ernstige) ongevallen gebeurden. "
+            "Een **gevaarlijk punt** is hier een plek waar binnen een vaste afstand genoeg (ernstige) ongevallen gebeurden. "
             "We lijken op de puntentelling van Vlaanderen voor "
             "[gevaarlijke punten](https://www.vlaanderen.be/mobiliteitsprofessionals/verkeersveiligheid/gevaarlijke-punten) "
             "(3 jaar, score van minstens 15), maar tellen **per ongeval** en niet per slachtoffer: "
@@ -428,11 +428,11 @@ with tab_punten:
         )
         st.caption(
             f"Vaste instelling: afstand {AFSTAND} m · score = {PUNT_LICHT} × licht + {PUNT_ZWAAR} × zwaar + {PUNT_DODEN} × doden, "
-            f"per ongeval (niet per slachtoffer). Zwart punt vanaf **{SCORE_DREMPEL} punten** (dus minstens 3 ongevallen). "
+            f"per ongeval (niet per slachtoffer). Gevaarlijk punt vanaf **{SCORE_DREMPEL} punten** (dus minstens 3 ongevallen). "
             "Ongevallen op verdachte standaardcoördinaten (bv. stadhuizen) tellen niet mee."
         )
         st.caption(
-            "De filters gewest, provincie en gemeente bepalen welke zwarte punten op de kaart en in de lijst staan; een "
+            "De filters gewest, provincie en gemeente bepalen welke gevaarlijke punten op de kaart en in de lijst staan; een "
             "punt hoort bij het gebied waar de meeste van zijn ongevallen liggen. De tabel bovenaan telt altijd heel België."
         )
 
@@ -504,7 +504,7 @@ def toon_lijngrafiek(titel, reeksen, periodes, dekking=None, dekking_gebied="hee
     # zich aan de zichtbare lijnen aan en lijkt een lage lijn te stijgen als je de hoogste uitzet.
     hoogste = max(1, max(max(aantallen) for aantallen in reeksen.values()))
     x = alt.X("periode:O", title="Periode (eindjaar van 3 jaar)", axis=alt.Axis(labelAngle=0), scale=alt.Scale(domain=perioden))
-    y = alt.Y("aantal:Q", title="Aantal zwarte punten", scale=alt.Scale(domain=[0, hoogste], nice=True))
+    y = alt.Y("aantal:Q", title="Aantal gevaarlijke punten", scale=alt.Scale(domain=[0, hoogste], nice=True))
     kleur = alt.Color("reeks:N", title=None, scale=alt.Scale(domain=namen))  # vaste volgorde en kleuren
 
     # Stippelpatroon per lijnstuk: k = aantal ZICHTBARE reeksen met hetzelfde begin- en eindpunt op dit stuk, r = rang
@@ -548,14 +548,14 @@ def toon_lijngrafiek(titel, reeksen, periodes, dekking=None, dekking_gebied="hee
             tooltip=[
                 alt.Tooltip("reeks:N", title="Reeks"),
                 alt.Tooltip("volledig:N", title="Periode"),
-                alt.Tooltip("aantal:Q", title="Zwarte punten"),
+                alt.Tooltip("aantal:Q", title="Gevaarlijke punten"),
             ],
         )
         .add_params(aan)
     )
     grafiek = alt.layer(lijnen, bolletjes)
     if dekking is not None:
-        # Eigen schaal rechts (0-100 %). Eerst de twee lagen met zwarte punten samen (gedeelde linkeras), dan de dekking
+        # Eigen schaal rechts (0-100 %). Eerst de twee lagen met gevaarlijke punten samen (gedeelde linkeras), dan de dekking
         # ernaast met een onafhankelijke y-schaal, zodat er maar één as links en één rechts staat.
         dek = pd.DataFrame(
             {"periode": perioden, "volledig": [volledig[p] for p in perioden], "procent": dekking}
@@ -589,7 +589,7 @@ def toon_lijngrafiek(titel, reeksen, periodes, dekking=None, dekking_gebied="hee
 
 
 with tab_evolutie:
-    # Voor elke periode van 3 jaar (2017-2019, 2018-2020, ..., 2022-2024) zoeken we de zwarte punten in heel België,
+    # Voor elke periode van 3 jaar (2017-2019, 2018-2020, ..., 2022-2024) zoeken we de gevaarlijke punten in heel België,
     # met dezelfde vaste instelling als in het tabblad Kaart.
     periodes = zp.periodes_van(JAAR_MIN, JAAR_MAX)
     per_periode = zp.spots_per_periode(df, periodes, zoek_clusters)
@@ -627,7 +627,7 @@ with tab_evolutie:
         len(zp.bruikbare_ongevallen(df)),
         len(df),
         "België",
-        "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten (2017-2024).",
+        "Gevaarlijke punten zijn gezocht onder ongevallen met bruikbare coördinaten (2017-2024).",
     )
 
 # ---------- Bron (onder alle tabbladen) ----------
