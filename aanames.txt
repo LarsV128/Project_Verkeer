@@ -272,10 +272,10 @@ veranderd. Wijzig ze nooit stil: leg een wijziging eerst voor.
   * Periode: 3 jaar, op de x-as benoemd naar het EINDJAAR: 2019 = 2017-2019, 2020 = 2018-2020, ..., 2024 = 2022-2024
     (6 punten). De volledige periode staat in de hover.
   * Dekkingslijn (sinds 2026-11-10): in alle 3 grafieken staat een dofgrijze stippellijn op een eigen as rechts (0-100 %):
-    het % ongevallen met bruikbare coördinaten (ok + hersteld) van ALLE ongevallen in HEEL BELGIË. Per jaar wordt het %
+    het % ongevallen met bruikbare coördinaten (ok + hersteld, zonder standaardcoördinaten) van ALLE ongevallen in HEEL BELGIË (Brussel inbegrepen); in de grafieken Vlaanderen en Wallonië van het Vlaams resp. Waals Gewest (zonder Brussel). Per jaar wordt het %
     berekend en per periode van 3 jaar nemen we het GEMIDDELDE van die 3 percentages (elk jaar even zwaar, dus niet
-    gewogen naar het aantal ongevallen). Voorbeeld 2019 = 2017-2019: (84,7 + 83,2 + 82,8) / 3 = 83,6. Dezelfde lijn in elke grafiek, ook bij de provincies en
-    ongeacht welke reeksen aanstaan. Staat niet in de legende en reageert niet op de legende; de waarde staat in de hover.
+    gewogen naar het aantal ongevallen). Per grafiek één lijn, ongeacht welke reeksen aanstaan.
+    Sinds 2026-11-16 tellen de standaardcoördinaten (gemeentehuizen, zie 3.4) niet meer als bruikbaar: ze zijn slechte coördinaten. Staat niet in de legende en reageert niet op de legende; de waarde staat in de hover.
   * Per periode worden de zwarte punten opnieuw gezocht in heel België met DEZELFDE VASTE INSTELLING als in het tabblad
     Kaart (zie 5.2: afstand, punten, drempel en minimum ongevallen), altijd als "vaste
     locaties". Verandert een constante in app.py, dan veranderen de grafieken mee.
@@ -288,8 +288,9 @@ veranderd. Wijzig ze nooit stil: leg een wijziging eerst voor.
         Brussels Gewest       55    47    42    53    72    74
         Wallonië               9     9     4     5    10    17
     De gewesten tellen in elke periode op tot het Totaal, en de provincies tellen op tot hun gewest (gecontroleerd).
-  * Onder de grafieken staat de verhouding weergegeven/totaal (2017-2024: 253.651 / 289.532 = 87,6 %) en de dekking per
-    periode: 2019: 83,6 % · 2020: 82,4 % · 2021: 81,9 % · 2022: 86,5 % · 2023: 91,5 % · 2024: 95,4 %.
+  * Onder de grafieken staat de verhouding weergegeven/totaal (2017-2024: 253.321 / 289.532 = 87,5 %) en de dekking per
+    periode (heel België): 2019: 83,5 % · 2020: 82,3 % · 2021: 81,8 % · 2022: 85,8 % · 2023: 91,0 % · 2024: 95,2 %.
+    Vlaams Gewest: 86,4 · 85,6 · 84,9 · 88,1 · 92,6 · 96,3 %. Waals Gewest: 77,0 · 74,4 · 74,1 · 79,7 · 87,1 · 93,7 %.
     LET OP: de dekking stijgt vanaf 2022, dus een stijging in de laatste jaren is deels een meeteffect (zie 3.4).
     De grafieken zijn niet gecorrigeerd voor die verschillende dekking.
 - Elk tabblad heeft eigen filters bovenaan: één gewest, één provincie, één gemeente, jaren en types.
@@ -327,7 +328,7 @@ veranderd. Wijzig ze nooit stil: leg een wijziging eerst voor.
                              gekozen jaren en types, ook die zonder coördinaten;
       weergegeven          = hoeveel daarvan in die tabel of op die kaart zitten.
   * Kaarten en zwarte punten gebruiken enkel ongevallen met bruikbare coördinaten (ok + hersteld). Heel België, alle
-    jaren en types: 253.651 / 289.532 = 87,6 %. Per gewest of provincie ligt dat percentage anders.
+    jaren en types: 253.321 / 289.532 = 87,5 % (de 330 standaardcoördinaten tellen niet mee). Per gewest of provincie ligt dat percentage anders.
 - Onderaan de app staat de bron: Statbel, verkeersongevallen (open data), 2017-2024, met de vermelding dat de data hier
   is opgeschoond (coördinaten omgerekend, 2 waarden hersteld). Link (door jou aangeleverd):
   https://statbel.fgov.be/sites/default/files/files/opendata/Accident_XY/OPENDATA_MAP_2017-2024.xlsx

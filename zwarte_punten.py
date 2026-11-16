@@ -40,9 +40,14 @@ def zonder_standaard(p):
     return p[~p["verdacht_coord"]]
 
 
+def is_bruikbaar(p):
+    """Per ongeval True als de coördinaat bruikbaar is: status ok/hersteld én geen standaardcoördinaat."""
+    return p["coord_status"].isin(BRUIKBAAR) & ~p["verdacht_coord"]
+
+
 def bruikbare_ongevallen(p):
     """De ongevallen waarmee we zwarte punten zoeken: bruikbare coördinaten en geen standaardcoördinaten."""
-    return zonder_standaard(p[p["coord_status"].isin(BRUIKBAAR)])
+    return p[is_bruikbaar(p)]
 
 
 # ---------- 4. Clusters zoeken ----------
@@ -160,8 +165,10 @@ def aantal_per_periode(per_periode, kolom=None, waarde=None):
     return [len(x["spots"]) if kolom is None else int((x["spots"][kolom] == waarde).sum()) for x in per_periode]
 
 
-def dekking_per_periode(df, periodes):
-    """% ongevallen met bruikbare coördinaten per periode: eerst per jaar, dan het gemiddelde van de jaren
-    (elk jaar telt even zwaar mee)."""
-    procent_per_jaar = df["coord_status"].isin(BRUIKBAAR).groupby(df["jaar"]).mean() * 100
+def dekking_per_periode(df, periodes, gewest=None):
+    """% ongevallen met bruikbare coördinaten (zie is_bruikbaar) per periode: eerst per jaar, dan het gemiddelde van de
+    jaren (elk jaar telt even zwaar mee). Met `gewest` enkel de ongevallen van dat gewest (bv. "Vlaams Gewest")."""
+    if gewest is not None:
+        df = df[df["gewest"] == gewest]
+    procent_per_jaar = is_bruikbaar(df).groupby(df["jaar"]).mean() * 100
     return [procent_per_jaar.loc[begin:eind].mean() for eind, begin in periodes]

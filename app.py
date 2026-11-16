@@ -362,7 +362,8 @@ def toon_kaart_en_tabel(spots, kolommen, dek, leden, straal, onder_kaart=None):
         toon_punt_detail(leden, actief)
     if onder_kaart:
         onder_kaart()
-    toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
+    if onder_kaart is None or dek[2] != "België":  # bij heel België staat dezelfde regel al onder de telling (onder_kaart)
+        toon_dekking(*dek, "De zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten.")
 
 
 with tab_punten:
@@ -442,7 +443,7 @@ GEWEST_NAAM = {"Vlaams Gewest": "Vlaanderen", "Brussels Hoofdstedelijk Gewest": 
 STREEP = 6  # lengte van een streepje in pixels (alleen opmaak)
 
 
-def toon_lijngrafiek(titel, reeksen, periodes, dekking=None):
+def toon_lijngrafiek(titel, reeksen, periodes, dekking=None, dekking_gebied="heel België"):
     """Lijngrafiek met de punten verbonden. `reeksen` = {naam: [aantal per periode]}, `periodes` = [(eindjaar, begin), ...].
 
     De periode staat op de x-as met het eindjaar (2019 = 2017-2019); de volledige periode staat in de hover.
@@ -452,8 +453,8 @@ def toon_lijngrafiek(titel, reeksen, periodes, dekking=None):
     de streepjes om en om zodat je ze allemaal ziet. Kruisen lijnen elkaar enkel, dan blijven ze doorlopend.
     Klik je een reeks in de legende uit, dan wordt de overlap opnieuw bekeken (in de grafiek zelf, niet in Python).
 
-    `dekking` = [% ongevallen met bruikbare coördinaten per periode, heel België]: wordt als dof grijs stippellijntje
-    getekend op een eigen as rechts (0-100), los van de reeksen en van de legende."""
+    `dekking` = [% ongevallen met bruikbare coördinaten per periode, in `dekking_gebied`]: wordt als dof grijs
+    stippellijntje getekend op een eigen as rechts (0-100), los van de reeksen en van de legende."""
     namen = list(reeksen)
     perioden = [str(eind) for eind, _ in periodes]
     volledig = {str(eind): f"{begin}-{eind}" for eind, begin in periodes}
@@ -583,7 +584,7 @@ def toon_lijngrafiek(titel, reeksen, periodes, dekking=None):
     st.altair_chart(grafiek, width="stretch")
     st.caption(
         "Klik op een naam in de legende om een lijn aan of uit te zetten. De schaal blijft dezelfde."
-        + (" De dofgrijze stippellijn (as rechts) is het gemiddelde van de 3 jaren van het % ongevallen in heel België met bruikbare coördinaten." if dekking else "")
+        + (f" De dofgrijze stippellijn (as rechts) is het gemiddelde van de 3 jaren van het % ongevallen in {dekking_gebied} met bruikbare coördinaten." if dekking else "")
     )
 
 
@@ -611,29 +612,22 @@ with tab_evolutie:
         "Vlaanderen: provincies",
         {p: aantallen("provincie", p) for p in provincies_van("Vlaams Gewest")},
         periodes,
-        dekking,
+        zp.dekking_per_periode(df, periodes, "Vlaams Gewest"),
+        "Vlaanderen",
     )
     toon_lijngrafiek(
         "Wallonië: provincies",
         {p: aantallen("provincie", p) for p in provincies_van("Waals Gewest")},
         periodes,
-        dekking,
+        zp.dekking_per_periode(df, periodes, "Waals Gewest"),
+        "Wallonië",
     )
 
     toon_dekking(
-        int(df["coord_status"].isin(zp.BRUIKBAAR).sum()),
+        len(zp.bruikbare_ongevallen(df)),
         len(df),
         "België",
         "Zwarte punten zijn gezocht onder ongevallen met bruikbare coördinaten (2017-2024).",
-    )
-    st.caption(
-        "Bruikbare coördinaten per periode (gemiddelde van het % van de 3 jaren, zoals de grijze lijn): "
-        + " · ".join(f"{eind}: {d:.1f} %".replace(".", ",") for (eind, _), d in zip(periodes, dekking))
-        + ". Let op: de dekking stijgt vanaf 2022; een stijging in de grafieken is dus deels een meeteffect (zie aanames.txt 3.4)."
-    )
-    st.caption(
-        f"Instelling zoals in het tabblad Kaart: afstand {AFSTAND} m, zwart punt vanaf {SCORE_DREMPEL} punten. "
-        f"Een punt telt mee bij het gewest en de provincie waar de meeste van zijn ongevallen liggen."
     )
 
 # ---------- Bron (onder alle tabbladen) ----------
